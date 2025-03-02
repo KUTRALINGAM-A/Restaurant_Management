@@ -108,7 +108,15 @@ const RestaurantRegistration = () => {
             style={inputStyle}
             required
           />
-         
+           <input
+            type="text"
+            name="secret_code"
+            placeholder="Secret Code"
+            value={formData.secret_code}
+            onChange={handleChange}
+            style={inputStyle}
+            required
+          />
           
           <button type="submit" style={buttonStyle}>Register</button>
         </form>

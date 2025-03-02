@@ -24,7 +24,7 @@ const authenticateToken = (req, res, next) => {
 router.post("/register", async (req, res) => {
     const client = await pool.connect();
     try {
-        const { name, email, phone, password, role, restaurant_name, restaurant_district, restaurant_id,secret_code } = req.body;
+        const { name, email, phone, password, role, restaurant_name, restaurant_district, restaurant_id, secret_code } = req.body;
 
         if (!["owner", "manager", "staff"].includes(role)) {
             return res.status(400).json({ message: "Invalid role. Must be 'owner', 'manager', or 'staff'." });
@@ -40,8 +40,8 @@ router.post("/register", async (req, res) => {
 
         if (role === "owner") {
             const restaurantResult = await client.query(
-                "INSERT INTO restaurants (name, owner_name, phone, restaurant_district,secret_code) VALUES ($1, $2, $3, $4,$5) RETURNING id",
-                [restaurant_name, name, phone, restaurant_district,secret_code]
+                "INSERT INTO restaurants (name, owner_name, phone, restaurant_district, secret_code) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                [restaurant_name, name, phone, restaurant_district, secret_code]
             );
             newRestaurantId = restaurantResult.rows[0].id;
 
@@ -72,8 +72,19 @@ router.post("/register", async (req, res) => {
                     created_at TIMESTAMP DEFAULT NOW()
                 );
             `);
-        } else if (!restaurant_id) {
-            return res.status(400).json({ message: "Manager and staff must have a valid restaurant_id." });
+        } else {
+            if (!restaurant_id || !secret_code) {
+                return res.status(400).json({ message: "Manager and staff must provide a valid restaurant_id and secret_code." });
+            }
+
+            const restaurant = await pool.query("SELECT secret_code FROM restaurants WHERE id = $1", [restaurant_id]);
+            if (restaurant.rows.length === 0) {
+                return res.status(400).json({ message: "Invalid Restaurant ID." });
+            }
+
+            if (restaurant.rows[0].secret_code !== secret_code) {
+                return res.status(403).json({ message: "Invalid secret code." });
+            }
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -102,7 +113,9 @@ router.post("/register", async (req, res) => {
     } catch (err) {
         await client.query("ROLLBACK");
         console.error("Registration Error:", err.message);
-        res.status(500).json({ error: "Server error" });
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Server error" });
+        }
     } finally {
         client.release();
     }
@@ -132,7 +145,7 @@ router.post("/login", async (req, res) => {
         res.status(200).json({ message: "Login successful", user: user.rows[0], token });
     } catch (err) {
         console.error("Login Error:", err.message);
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({ message: "Server error" });
     }
 });
 
@@ -143,7 +156,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
         res.status(200).json(user.rows[0]);
     } catch (err) {
         console.error("Profile Error:", err.message);
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({ message: "Server error" });
     }
 });
 

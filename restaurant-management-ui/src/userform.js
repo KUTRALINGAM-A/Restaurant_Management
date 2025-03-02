@@ -15,21 +15,27 @@ const UserRegistration = () => {
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+      setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/users/register",
-        formData
-      );
-      setMessage(response.data.message);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Registration failed");
-    }
+      e.preventDefault();
+      try {
+          const response = await axios.post(
+              "http://localhost:5000/users/register",
+              formData
+          );
+          setMessage(response.data.message);
+      } catch (error) {
+          if (error.response && error.response.data) {
+              setMessage(error.response.data.message || "Registration failed. Server error.");
+          } else {
+              setMessage("Registration failed. Network error or server unavailable.");
+              console.error("Registration error:", error);
+          }
+      }
   };
+
 
   return (
     <div
@@ -136,6 +142,21 @@ const UserRegistration = () => {
             name="restaurant_id"
             placeholder="Restaurant ID"
             value={formData.restaurant_id}
+            onChange={handleChange}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginBottom: "10px",
+              border: "1px solid #ccc",
+              borderRadius: "5px",
+            }}
+            required
+          />
+          <input
+            type="text"
+            name="secret_code"
+            placeholder="Secret Code"
+            value={formData.secret_code}
             onChange={handleChange}
             style={{
               width: "100%",
