@@ -126,7 +126,13 @@ router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        const user = await pool.query(
+            "SELECT u.*, r.name AS restaurant_name FROM users u " +
+            "JOIN restaurants r ON u.restaurant_id = r.id " +
+            "WHERE u.email = $1", 
+            [email]
+        );
+
         if (user.rows.length === 0) {
             return res.status(401).json({ message: "User not found" });
         }
@@ -137,18 +143,27 @@ router.post("/login", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.rows[0].id, role: user.rows[0].role },
+            { 
+                id: user.rows[0].id, 
+                role: user.rows[0].role,
+                restaurant_id: user.rows[0].restaurant_id
+            },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
 
-        res.status(200).json({ message: "Login successful", user: user.rows[0], token });
+        res.status(200).json({ 
+            message: "Login successful", 
+            user: user.rows[0], 
+            token,
+            restaurantId: user.rows[0].restaurant_id,
+            restaurantName: user.rows[0].restaurant_name
+        });
     } catch (err) {
         console.error("Login Error:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 });
-
 // Get User Profile (Protected Route)
 router.get("/profile", authenticateToken, async (req, res) => {
     try {

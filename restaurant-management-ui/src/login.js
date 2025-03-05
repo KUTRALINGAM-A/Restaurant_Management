@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const UserLogin = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
@@ -18,8 +18,17 @@ const UserLogin = () => {
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/users/login", formData);
-      setMessage(response.data.message);
+      
+      // Clear any existing storage
+      localStorage.clear();
+      
+      // Store token and user information
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("restaurantId", response.data.restaurantId);
+      localStorage.setItem("restaurantName", response.data.restaurantName);
+      
+      // Navigate to restaurant home page
+      navigate("/restaurant-home");
     } catch (error) {
       if (error.response && error.response.data) {
         setMessage(error.response.data.message || "Login failed. Server error.");
