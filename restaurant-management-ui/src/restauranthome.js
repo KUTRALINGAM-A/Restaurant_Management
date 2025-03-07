@@ -4,11 +4,16 @@ import { useNavigate } from "react-router-dom";
 const RestaurantHome = () => {
   const navigate = useNavigate();
   const [restaurantName, setRestaurantName] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    // Retrieve restaurant name from local storage
+    // Retrieve restaurant name and user name from local storage
     const storedRestaurantName = localStorage.getItem("restaurantName");
+    const storedUserName = localStorage.getItem("name");
+    const storedEmail = localStorage.getItem("email");
+    
     setRestaurantName(storedRestaurantName || "My Restaurant");
+    setUserName(storedUserName || storedEmail || "User");
   }, []);
 
   const handleLogout = () => {
@@ -24,9 +29,10 @@ const RestaurantHome = () => {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "space-between",
       height: "100vh",
       backgroundColor: "#f0f2f5",
+      padding: "20px 0",
     }}>
       <div style={{
         backgroundColor: "white",
@@ -36,13 +42,23 @@ const RestaurantHome = () => {
         width: "80%",
         maxWidth: "600px",
       }}>
-        <h1 style={{ 
-          textAlign: "center", 
-          color: "#007bff",
+        <div style={{
+          textAlign: "left",
           marginBottom: "20px"
         }}>
-          {restaurantName} Dashboard
-        </h1>
+          <h1 style={{ 
+            color: "#007bff",
+            margin: "0"
+          }}>
+            {restaurantName}'s Dashboard
+          </h1>
+          <p style={{
+            margin: "5px 0 0 0",
+            color: "#6c757d"
+          }}>
+            Welcome {userName}
+          </p>
+        </div>
 
         <div style={{
           display: "flex",
@@ -93,7 +109,26 @@ const RestaurantHome = () => {
         >
           Logout
         </button>
+        
+        <div style={{
+          textAlign: "center",
+          marginTop: "20px",
+          fontSize: "14px",
+          color: "#6c757d"
+        }}>
+          A product of Flamingoes
+        </div>
       </div>
+      
+      <footer style={{
+        width: "100%",
+        textAlign: "center",
+        padding: "10px 0",
+        color: "#6c757d",
+        fontSize: "12px"
+      }}>
+        © Flamingoes 2025 All Rights Reserved 
+      </footer>
     </div>
   );
 };
