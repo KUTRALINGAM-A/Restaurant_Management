@@ -9,6 +9,7 @@ const UserLogin = () => {
     password: "",
   });
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,26 +17,56 @@ const UserLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setMessage("");
+    
     try {
-      const response = await axios.post("http://localhost:5000/users/login", formData);
+      // Attempt login
+      const loginResponse = await axios.post("http://localhost:5000/users/login", formData);
       
-      // Clear any existing storage
-      localStorage.clear();
+      console.log("LOGIN RESPONSE DATA:", loginResponse.data);
       
-      // Store token and user information
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("restaurantId", response.data.restaurantId);
-      localStorage.setItem("restaurantName", response.data.restaurantName);
+      // Store token and user data
+      localStorage.setItem("token", loginResponse.data.token);
+      localStorage.setItem("email", formData.email);
       
-      // Navigate to restaurant home page
+      // IMPORTANT: Force store a name regardless of API structure
+      // First try to get it from the response in different possible locations
+      let userName = "User"; // Default fallback
+      
+      if (loginResponse.data.name) {
+        userName = loginResponse.data.name;
+      } else if (loginResponse.data.user && loginResponse.data.user.name) {
+        userName = loginResponse.data.user.name;
+      } else if (loginResponse.data.userName) {
+        userName = loginResponse.data.userName;
+      } else if (loginResponse.data.user && loginResponse.data.user.userName) {
+        userName = loginResponse.data.user.userName;
+      }
+      
+      console.log("STORING USER NAME:", userName);
+      localStorage.setItem("name", userName);
+      
+      // Store restaurant info if available
+      if (loginResponse.data.restaurantId) {
+        localStorage.setItem("restaurantId", loginResponse.data.restaurantId);
+      }
+
+      if (loginResponse.data.restaurantName) {
+        localStorage.setItem("restaurantName", loginResponse.data.restaurantName);
+      }
+
+      // Navigate to home page
       navigate("/restaurant-home");
     } catch (error) {
+      console.error("LOGIN ERROR:", error);
+      
       if (error.response && error.response.data) {
-        setMessage(error.response.data.message || "Login failed. Server error.");
+        setMessage(error.response.data.message || "Login failed. Please try again.");
       } else {
         setMessage("Login failed. Network error or server unavailable.");
-        console.error("Login error:", error);
       }
+      setIsLoading(false);
     }
   };
 
@@ -76,6 +107,7 @@ const UserLogin = () => {
               borderRadius: "5px",
             }}
             required
+            disabled={isLoading}
           />
           <input
             type="password"
@@ -91,20 +123,22 @@ const UserLogin = () => {
               borderRadius: "5px",
             }}
             required
+            disabled={isLoading}
           />
           <button
             type="submit"
             style={{
               width: "100%",
-              background: "#007bff",
+              background: isLoading ? "#cccccc" : "#007bff",
               color: "white",
               padding: "10px",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer",
+              cursor: isLoading ? "not-allowed" : "pointer",
             }}
+            disabled={isLoading}
           >
-            Login
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
         {message && (

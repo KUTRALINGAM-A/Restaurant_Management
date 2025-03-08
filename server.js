@@ -4,7 +4,7 @@ const cors = require("cors");
 const { Pool } = require("pg"); // Correct import
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
 // Database connection
 const pool = new Pool({
@@ -16,6 +16,8 @@ app.use(cors());
 app.use(express.json());
 const userRoutes = require("./routes/users");
 app.use("/users", userRoutes);
+const RestaurantRoutes = require("./routes/RestaurantRoute");
+app.use('/restaurants', RestaurantRoutes);
 
 // Test route
 app.get("/", (req, res) => {

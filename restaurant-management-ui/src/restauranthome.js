@@ -3,26 +3,60 @@ import { useNavigate } from "react-router-dom";
 
 const RestaurantHome = () => {
   const navigate = useNavigate();
-  const [restaurantName, setRestaurantName] = useState("");
-  const [userName, setUserName] = useState("");
+  const [restaurantName, setRestaurantName] = useState("My Restaurant");
+  const [userName, setUserName] = useState("User");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // Retrieve restaurant name and user name from local storage
-    const storedRestaurantName = localStorage.getItem("restaurantName");
-    const storedUserName = localStorage.getItem("name");
-    const storedEmail = localStorage.getItem("email");
-    
-    setRestaurantName(storedRestaurantName || "My Restaurant");
-    setUserName(storedUserName || storedEmail || "User");
-  }, []);
+    try {
+      // Check for token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found, redirecting to login");
+        navigate("/");
+        return;
+      }
+      
+      // Get user name directly from localStorage - SIMPLIFIED APPROACH
+      const storedName = localStorage.getItem("name");
+      console.log("USER NAME FROM STORAGE:", storedName);
+      
+      if (storedName) {
+        setUserName(storedName);
+      }
+      
+      // Get restaurant name
+      const storedRestaurantName = localStorage.getItem("restaurantName");
+      if (storedRestaurantName) {
+        setRestaurantName(storedRestaurantName);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+      setError("Error loading dashboard");
+      setLoading(false);
+    }
+  }, [navigate]);
 
   const handleLogout = () => {
-    // Clear local storage
     localStorage.clear();
-    
-    // Redirect to login page
     navigate("/");
   };
+
+  if (loading) {
+    return (
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+      }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -33,7 +67,52 @@ const RestaurantHome = () => {
       height: "100vh",
       backgroundColor: "#f0f2f5",
       padding: "20px 0",
+      position: "relative",
     }}>
+      {error && (
+        <div style={{
+          position: "absolute",
+          top: "10px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "#f8d7da",
+          color: "#721c24",
+          padding: "10px 15px",
+          borderRadius: "5px",
+          zIndex: 1000
+        }}>
+          {error}
+        </div>
+      )}
+      
+      {/* Restaurant name and welcome message positioned at top right */}
+      <div style={{
+        position: "absolute",
+        top: "20px",
+        right: "20px",
+        textAlign: "right",
+        backgroundColor: "white",
+        padding: "10px 15px",
+        borderRadius: "8px",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      }}>
+        <h1 style={{ 
+          color: "#007bff",
+          margin: "0",
+          fontSize: "18px"
+        }}>
+          {restaurantName}'s Dashboard
+        </h1>
+        <p style={{
+          margin: "5px 0 0 0",
+          color: "#6c757d",
+          fontSize: "14px"
+        }}>
+          Welcome {userName}
+        </p>
+      </div>
+
+      {/* Centered buttons container */}
       <div style={{
         backgroundColor: "white",
         padding: "20px",
@@ -41,39 +120,25 @@ const RestaurantHome = () => {
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
         width: "80%",
         maxWidth: "600px",
+        margin: "auto",
+        marginTop: "80px"
       }}>
         <div style={{
-          textAlign: "left",
-          marginBottom: "20px"
-        }}>
-          <h1 style={{ 
-            color: "#007bff",
-            margin: "0"
-          }}>
-            {restaurantName}'s Dashboard
-          </h1>
-          <p style={{
-            margin: "5px 0 0 0",
-            color: "#6c757d"
-          }}>
-            Welcome {userName}
-          </p>
-        </div>
-
-        <div style={{
           display: "flex",
-          justifyContent: "space-between",
+          flexDirection: "column",
           gap: "20px",
+          alignItems: "center",
         }}>
           <button
             style={{
-              flex: 1,
+              width: "100%",
               padding: "15px",
               backgroundColor: "#28a745",
               color: "white",
               border: "none",
               borderRadius: "8px",
               cursor: "pointer",
+              fontSize: "16px"
             }}
           >
             Employee Attendance
@@ -81,34 +146,35 @@ const RestaurantHome = () => {
 
           <button
             style={{
-              flex: 1,
+              width: "100%",
               padding: "15px",
               backgroundColor: "#ffc107",
               color: "white",
               border: "none",
               borderRadius: "8px",
               cursor: "pointer",
+              fontSize: "16px"
             }}
           >
             Billing
           </button>
-        </div>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            width: "100%",
-            marginTop: "20px",
-            padding: "10px",
-            backgroundColor: "#dc3545",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-          }}
-        >
-          Logout
-        </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              padding: "15px",
+              backgroundColor: "#dc3545",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "16px"
+            }}
+          >
+            Logout
+          </button>
+        </div>
         
         <div style={{
           textAlign: "center",

@@ -1,3 +1,4 @@
+// Updated Users Router with fixed authenticateToken middleware
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -6,10 +7,15 @@ require("dotenv").config();
 
 const router = express.Router();
 
-// Middleware for JWT Authentication
+// Fixed Middleware for JWT Authentication
 const authenticateToken = (req, res, next) => {
-    const token = req.header("Authorization");
-    if (!token) return res.status(403).json({ message: "Access Denied" });
+    const authHeader = req.header("Authorization");
+    if (!authHeader) return res.status(403).json({ message: "Access Denied" });
+    
+    // Extract token from "Bearer [token]" format
+    const token = authHeader.startsWith('Bearer ') ? 
+                  authHeader.substring(7) : 
+                  authHeader;
 
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
@@ -157,17 +163,19 @@ router.post("/login", async (req, res) => {
             user: user.rows[0], 
             token,
             restaurantId: user.rows[0].restaurant_id,
-            restaurantName: user.rows[0].restaurant_name
+            restaurantName: user.rows[0].restaurant_name,
+            name: user.rows[0].name // Added name directly in login response
         });
     } catch (err) {
         console.error("Login Error:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 });
+
 // Get User Profile (Protected Route)
 router.get("/profile", authenticateToken, async (req, res) => {
     try {
-        const user = await pool.query("SELECT id, name, email, phone, role FROM users WHERE id = $1", [req.user.id]);
+        const user = await pool.query("SELECT id, name, email, phone, role, restaurant_id FROM users WHERE id = $1", [req.user.id]);
         res.status(200).json(user.rows[0]);
     } catch (err) {
         console.error("Profile Error:", err.message);
