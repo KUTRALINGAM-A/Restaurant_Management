@@ -9,22 +9,57 @@ const RestaurantRegistration = () => {
     restaurant_district: "",
     email: "",
     password: "",
-    secret_code: "", // Added secret code field
+    secret_code: "",
   });
-
+  
+  const [logo, setLogo] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogo(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Create FormData object to send both text and binary data
+    const registrationData = new FormData();
+    
+    // Add all text fields
+    Object.keys(formData).forEach(key => {
+      registrationData.append(key, formData[key]);
+    });
+    
+    // Add role and logo
+    registrationData.append("role", "owner");
+    if (logo) {
+      registrationData.append("logo", logo);
+    }
+    
     try {
-      const response = await axios.post("http://localhost:5000/users/register", {
-        ...formData,
-        role: "owner",
-      });
+      const response = await axios.post(
+        "http://localhost:5000/users/register", 
+        registrationData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
       setMessage(response.data.message);
     } catch (error) {
       setMessage(error.response?.data?.message || "Registration failed");
@@ -108,7 +143,7 @@ const RestaurantRegistration = () => {
             style={inputStyle}
             required
           />
-           <input
+          <input
             type="text"
             name="secret_code"
             placeholder="Secret Code"
@@ -118,10 +153,35 @@ const RestaurantRegistration = () => {
             required
           />
           
+          <div style={{ marginBottom: "15px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+              Restaurant Logo:
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoChange}
+              style={{ ...inputStyle, padding: "8px" }}
+            />
+            {logoPreview && (
+              <div style={{ textAlign: "center", marginTop: "10px" }}>
+                <img 
+                  src={logoPreview} 
+                  alt="Logo Preview" 
+                  style={{ 
+                    maxWidth: "100%", 
+                    maxHeight: "150px", 
+                    borderRadius: "5px" 
+                  }} 
+                />
+              </div>
+            )}
+          </div>
+          
           <button type="submit" style={buttonStyle}>Register</button>
         </form>
         {message && (
-          <p style={{ marginTop: "10px", textAlign: "center", color: "red" }}>
+          <p style={{ marginTop: "10px", textAlign: "center", color: "green" }}>
             {message}
           </p>
         )}

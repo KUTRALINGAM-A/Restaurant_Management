@@ -50,10 +50,14 @@ const UserLogin = () => {
       // Store restaurant info if available
       if (loginResponse.data.restaurantId) {
         localStorage.setItem("restaurantId", loginResponse.data.restaurantId);
+      } else if (loginResponse.data.restaurant && loginResponse.data.restaurant.id) {
+        localStorage.setItem("restaurantId", loginResponse.data.restaurant.id);
       }
 
       if (loginResponse.data.restaurantName) {
         localStorage.setItem("restaurantName", loginResponse.data.restaurantName);
+      } else if (loginResponse.data.restaurant && loginResponse.data.restaurant.name) {
+        localStorage.setItem("restaurantName", loginResponse.data.restaurant.name);
       }
 
       // Navigate to home page

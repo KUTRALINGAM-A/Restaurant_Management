@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const RestaurantHome = () => {
   const navigate = useNavigate();
@@ -7,21 +8,19 @@ const RestaurantHome = () => {
   const [userName, setUserName] = useState("User");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [logoUrl, setLogoUrl] = useState(null);
 
   useEffect(() => {
     try {
       // Check for token
       const token = localStorage.getItem("token");
       if (!token) {
-        console.error("No token found, redirecting to login");
         navigate("/");
         return;
       }
       
-      // Get user name directly from localStorage - SIMPLIFIED APPROACH
+      // Get user name directly from localStorage
       const storedName = localStorage.getItem("name");
-      console.log("USER NAME FROM STORAGE:", storedName);
-      
       if (storedName) {
         setUserName(storedName);
       }
@@ -32,13 +31,38 @@ const RestaurantHome = () => {
         setRestaurantName(storedRestaurantName);
       }
       
-      setLoading(false);
+      // Fetch restaurant logo
+      const restaurantId = localStorage.getItem("restaurantId");
+      
+      if (restaurantId) {
+        fetchRestaurantLogo(restaurantId, token);
+      } else {
+        setLoading(false);
+      }
     } catch (error) {
-      console.error("Error loading dashboard:", error);
       setError("Error loading dashboard");
       setLoading(false);
     }
   }, [navigate]);
+
+  const fetchRestaurantLogo = async (restaurantId, token) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/users/restaurant-logo/${restaurantId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
+      });
+      
+      // Create a blob URL from the response data
+      const logoBlob = new Blob([response.data], { type: response.headers['content-type'] || 'image/png' });
+      const url = URL.createObjectURL(logoBlob);
+      setLogoUrl(url);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -110,6 +134,52 @@ const RestaurantHome = () => {
         }}>
           Welcome {userName}
         </p>
+      </div>
+
+      {/* Restaurant Logo */}
+      <div style={{
+        position: "absolute",
+        top: "20px",
+        left: "20px",
+        backgroundColor: "white",
+        padding: "10px",
+        borderRadius: "8px",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        width: "120px",
+        height: "120px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden"
+      }}>
+        {logoUrl ? (
+          <img 
+            src={logoUrl} 
+            alt={`${restaurantName} Logo`} 
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain"
+            }} 
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        ) : (
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "#f0f2f5",
+            color: "#6c757d",
+            fontSize: "14px",
+            textAlign: "center"
+          }}>
+            No logo available
+          </div>
+        )}
       </div>
 
       {/* Centered buttons container */}
