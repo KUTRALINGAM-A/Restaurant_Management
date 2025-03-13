@@ -270,83 +270,75 @@ const RestaurantHome = () => {
             gap: "20px",
             marginBottom: "30px"
           }}>
-            <DashboardCard 
-              title="Employee Attendance"
+            {/* Action Cards - Interactive cards that serve as buttons */}
+            <ActionCard 
+              title="Attendance Summary"
               description="Track and manage employee time records"
               icon="👥"
               color="#0a58ca"
+              onClick={() => console.log("Attendance clicked")}
             />
 
-            <DashboardCard 
+            <ActionCard 
               title="Billing"
               description="Generate and manage customer bills"
               icon="💰"
               color="#198754"
+              onClick={() => console.log("Billing clicked")}
             />
 
-            <DashboardCard 
+            <ActionCard 
               title="Reports"
               description="View business analytics and reports"
               icon="📊"
               color="#fd7e14"
+              onClick={() => console.log("Reports clicked")}
             />
           </div>
 
+          {/* Additional quick actions section */}
           <div style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "20px",
-            marginTop: "20px"
+            backgroundColor: "#ffffff",
+            borderRadius: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            padding: "25px",
+            marginTop: "30px"
           }}>
-            <button
-              style={{
-                backgroundColor: "#0a58ca",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                padding: "12px 24px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "500",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease"
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = "#0b5ed7";
-                e.target.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = "#0a58ca";
-                e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-              }}
-            >
-              Employee Attendance
-            </button>
-
-            <button
-              style={{
-                backgroundColor: "#198754",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                padding: "12px 24px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "500",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease"
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = "#1a9d5a";
-                e.target.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = "#198754";
-                e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-              }}
-            >
-              Billing
-            </button>
+            <h3 style={{
+              fontSize: "16px",
+              color: "#343a40",
+              margin: "0 0 20px 0",
+              fontWeight: "600"
+            }}>
+              Quick Actions
+            </h3>
+            
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "15px"
+            }}>
+              <QuickActionButton
+                icon="✓"
+                text="Mark Attendance"
+                color="#0a58ca"
+                onClick={() => console.log("Quick attendance clicked")}
+              />
+              
+              <QuickActionButton
+                icon="$"
+                text="New Bill"
+                color="#198754"
+                onClick={() => console.log("Quick billing clicked")}
+              />
+              
+              <QuickActionButton
+                icon="↻"
+                text="Refresh Data"
+                color="#6c757d"
+                onClick={() => console.log("Refresh clicked")}
+              />
+            </div>
           </div>
         </div>
       </main>
@@ -374,34 +366,39 @@ const RestaurantHome = () => {
   );
 };
 
-// Dashboard Card Component
-const DashboardCard = ({ title, description, icon, color }) => {
+// Action Card Component - Cards that function as primary actions
+const ActionCard = ({ title, description, icon, color, onClick }) => {
   return (
-    <div style={{
-      backgroundColor: "#ffffff",
-      borderRadius: "8px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-      padding: "25px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "15px",
-      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-      cursor: "pointer",
-    }}
-    onMouseOver={(e) => {
-      e.currentTarget.style.transform = "translateY(-5px)";
-      e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.1)";
-    }}
-    onMouseOut={(e) => {
-      e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
-    }}
+    <div 
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "8px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        padding: "25px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "15px",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        cursor: "pointer",
+        border: "1px solid transparent",
+      }}
+      onClick={onClick}
+      onMouseOver={(e) => {
+        e.currentTarget.style.transform = "translateY(-5px)";
+        e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.1)";
+        e.currentTarget.style.borderColor = color;
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+        e.currentTarget.style.borderColor = "transparent";
+      }}
     >
       <div style={{
         width: "50px",
         height: "50px",
         borderRadius: "10px",
-        backgroundColor: `${color}10`,
+        backgroundColor: `${color}15`,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -424,7 +421,82 @@ const DashboardCard = ({ title, description, icon, color }) => {
       }}>
         {description}
       </p>
+      <div style={{
+        marginTop: "10px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }}>
+        <span style={{
+          color: color,
+          fontSize: "14px",
+          fontWeight: "500"
+        }}>
+          Open
+        </span>
+        <span style={{
+          width: "24px",
+          height: "24px",
+          borderRadius: "50%",
+          backgroundColor: `${color}15`,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          color: color,
+          fontSize: "14px"
+        }}>
+          →
+        </span>
+      </div>
     </div>
+  );
+};
+
+// Quick Action Button Component - For secondary actions
+const QuickActionButton = ({ icon, text, color, onClick }) => {
+  return (
+    <button 
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        backgroundColor: "white",
+        border: `1px solid ${color}30`,
+        borderRadius: "8px",
+        padding: "12px 15px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        color: "#495057",
+        fontWeight: "500",
+        fontSize: "14px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = color;
+        e.currentTarget.style.color = "white";
+        e.currentTarget.style.boxShadow = "0 3px 6px rgba(0,0,0,0.1)";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = "white";
+        e.currentTarget.style.color = "#495057";
+        e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+      }}
+    >
+      <span style={{
+        width: "24px",
+        height: "24px",
+        borderRadius: "50%",
+        backgroundColor: `${color}20`,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: color
+      }}>
+        {icon}
+      </span>
+      {text}
+    </button>
   );
 };
 
