@@ -5,18 +5,20 @@ import Home from "./home";
 import RestaurantRegistration from "./RestaurantRegistration";
 import UserForm from "./userform";
 import RestaurantHome from "./restauranthome";
-
+import BillingHome from "./billinghome";
+import Curd from "./billing/CURD_menu";
+import Add from "./billing/additem";
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
-  
+
   if (!token) {
     // Redirect to login if no token
     return <Navigate to="/" replace />;
   }
-  
+
   return children;
-};
+}
 
 const App = () => {
   return (
@@ -26,7 +28,9 @@ const App = () => {
         <Route path="/home" element={<Home />} />
         <Route path="/restaurant-register" element={<RestaurantRegistration />} />
         <Route path="/user-register" element={<UserForm />} />
-        
+        <Route path="/billinghome" element={<BillingHome />} />
+        <Route path="/billing/CURD_menu" element={<Curd />} />
+        <Route path="/billing/additem" element={<Add />} />
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 

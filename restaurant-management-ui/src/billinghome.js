@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const RestaurantHome = () => {
+const BillingHome = () => {
   const navigate = useNavigate();
-  const [restaurantName, setRestaurantName] = useState("My Restaurant");
-  const [userName, setUserName] = useState("User");
+  const [restaurantName, setRestaurantName] = React.useState("My Restaurant");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [logoUrl, setLogoUrl] = useState(null);
-
+  const [userName, setUserName] = React.useState("User");
+  const [error, setError] = React.useState("");
+  const [logoUrl, setLogoUrl] = React.useState(null);
   useEffect(() => {
     try {
       // Check for token
@@ -44,6 +43,7 @@ const RestaurantHome = () => {
       setLoading(false);
     }
   }, [navigate]);
+  
 
   const fetchRestaurantLogo = async (restaurantId, token) => {
     try {
@@ -63,12 +63,11 @@ const RestaurantHome = () => {
       setLoading(false);
     }
   };
-
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
-
+  
   if (loading) {
     return (
       <div style={{
@@ -102,7 +101,12 @@ const RestaurantHome = () => {
         `}</style>
       </div>
     );
-  }
+}
+
+  const handleBackToDashboard = () => {
+    navigate("/restaurant-home");
+  };
+  
 
   return (
     <div style={{
@@ -112,6 +116,7 @@ const RestaurantHome = () => {
       backgroundColor: "#f8f9fa",
       fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     }}>
+        
       {/* Header */}
       <header style={{
         backgroundColor: "#ffffff",
@@ -252,94 +257,90 @@ const RestaurantHome = () => {
       }}>
         <div style={{
           width: "100%",
-          maxWidth: "800px"
+          maxWidth: "900px"
         }}>
-          <h2 style={{
-            fontSize: "20px",
-            color: "#343a40",
-            margin: "0 0 25px 0",
-            textAlign: "center",
-            fontWeight: "600"
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "30px"
           }}>
-            Restaurant Management Dashboard
-          </h2>
+            <button
+              onClick={handleBackToDashboard}
+              style={{
+                backgroundColor: "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                padding: "8px 16px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                transition: "all 0.2s ease"
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = "#5a6268";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = "#6c757d";
+              }}
+            >
+              <span>←</span> Back to Dashboard
+            </button>
+            
+            <h2 style={{
+              fontSize: "24px",
+              color: "#343a40",
+              margin: "0",
+              fontWeight: "600"
+            }}>
+              Billing Management
+            </h2>
+            
+            <div style={{ width: "120px" }}></div> {/* Empty div for spacing */}
+          </div>
 
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "20px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "25px",
             marginBottom: "30px"
           }}>
-            {/* Action Cards - Interactive cards that serve as buttons */}
-            <ActionCard 
-              title="Attendance Summary"
-              description="Track and manage employee time records"
-              icon="👥"
-              color="#0a58ca"
-              onClick={() => console.log("Attendance clicked")}
+            {/* Menu Management Card */}
+            <BillingCard 
+              title="Menu Management"
+              description="Add, remove or update menu items for billing"
+              icon="🍽️"
+              color="#0d6efd"
+              actionText="Manage Menu"
+              onClick={() => navigate("/billing/CURD_menu")}
             />
 
-            <ActionCard 
-              title="Billing"
-              description="Generate and manage customer bills"
-              icon="💰"
+            {/* New Bill Card */}
+            <BillingCard 
+              title="New Bill"
+              description="Create a new bill for customer orders"
+              icon="📝"
               color="#198754"
-              onClick={() => navigate("/billinghome")}
+              actionText="Create Bill"
+              onClick={() => navigate("/billing/new-bill")}
             />
 
-            <ActionCard 
-              title="Reports"
-              description="View business analytics and reports"
+            {/* Bill Reports Card */}
+            <BillingCard 
+              title="Bill Reports"
+              description="View and analyze bills date-wise"
               icon="📊"
               color="#fd7e14"
-              onClick={() => console.log("Reports clicked")}
+              actionText="View Reports"
+              onClick={() => navigate("/billing/reports")}
             />
           </div>
 
-          {/* Additional quick actions section */}
-          <div style={{
-            backgroundColor: "#ffffff",
-            borderRadius: "10px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            padding: "25px",
-            marginTop: "30px"
-          }}>
-            <h3 style={{
-              fontSize: "16px",
-              color: "#343a40",
-              margin: "0 0 20px 0",
-              fontWeight: "600"
-            }}>
-              Quick Actions
-            </h3>
-            
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "15px"
-            }}>
-              <QuickActionButton
-                icon="✓"
-                text="Mark Attendance"
-                color="#0a58ca"
-                onClick={() => console.log("Quick attendance clicked")}
-              />
-              
-              <QuickActionButton
-                icon="$"
-                text="New Bill"
-                color="#198754"
-                onClick={() => console.log("Quick billing clicked")}
-              />
-              
-              <QuickActionButton
-                icon="↻"
-                text="Refresh Data"
-                color="#6c757d"
-                onClick={() => console.log("Refresh clicked")}
-              />
-            </div>
-          </div>
+         
         </div>
       </main>
 
@@ -366,84 +367,88 @@ const RestaurantHome = () => {
   );
 };
 
-// Action Card Component - Cards that function as primary actions
-const ActionCard = ({ title, description, icon, color, onClick }) => {
+// Billing Card Component for main options
+const BillingCard = ({ title, description, icon, color, actionText, onClick }) => {
   return (
     <div 
       style={{
         backgroundColor: "#ffffff",
-        borderRadius: "8px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        padding: "25px",
+        borderRadius: "12px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+        padding: "30px",
         display: "flex",
         flexDirection: "column",
-        gap: "15px",
+        gap: "20px",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         cursor: "pointer",
         border: "1px solid transparent",
+        height: "100%"
       }}
       onClick={onClick}
       onMouseOver={(e) => {
         e.currentTarget.style.transform = "translateY(-5px)";
-        e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.1)";
+        e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.12)";
         e.currentTarget.style.borderColor = color;
       }}
       onMouseOut={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+        e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
         e.currentTarget.style.borderColor = "transparent";
       }}
     >
       <div style={{
-        width: "50px",
-        height: "50px",
-        borderRadius: "10px",
+        width: "60px",
+        height: "60px",
+        borderRadius: "12px",
         backgroundColor: `${color}15`,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        fontSize: "24px"
+        fontSize: "28px"
       }}>
         {icon}
       </div>
-      <h3 style={{
-        margin: "0",
-        color: "#212529",
-        fontSize: "18px",
-        fontWeight: "600"
-      }}>
-        {title}
-      </h3>
-      <p style={{
-        margin: "0",
-        color: "#6c757d",
-        fontSize: "14px"
-      }}>
-        {description}
-      </p>
+      <div>
+        <h3 style={{
+          margin: "0 0 10px 0",
+          color: "#212529",
+          fontSize: "20px",
+          fontWeight: "600"
+        }}>
+          {title}
+        </h3>
+        <p style={{
+          margin: "0",
+          color: "#6c757d",
+          fontSize: "15px",
+          lineHeight: "1.5"
+        }}>
+          {description}
+        </p>
+      </div>
       <div style={{
-        marginTop: "10px",
+        marginTop: "auto",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between"
       }}>
         <span style={{
           color: color,
-          fontSize: "14px",
-          fontWeight: "500"
+          fontSize: "15px",
+          fontWeight: "600"
         }}>
-          Open
+          {actionText}
         </span>
         <span style={{
-          width: "24px",
-          height: "24px",
+          width: "28px",
+          height: "28px",
           borderRadius: "50%",
           backgroundColor: `${color}15`,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           color: color,
-          fontSize: "14px"
+          fontSize: "16px"
         }}>
           →
         </span>
@@ -452,71 +457,7 @@ const ActionCard = ({ title, description, icon, color, onClick }) => {
   );
 };
 
-// Quick Action Button Component - For secondary actions
-const QuickActionButton = ({ icon, text, color, onClick }) => {
-  // Create a reference to the icon element
-  const iconRef = React.useRef(null);
-  
-  return (
-    <button 
-      onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        backgroundColor: "white",
-        border: `1px solid ${color}30`,
-        borderRadius: "8px",
-        padding: "12px 15px",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        color: "#495057",
-        fontWeight: "500",
-        fontSize: "14px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.backgroundColor = color;
-        e.currentTarget.style.color = "white";
-        e.currentTarget.style.boxShadow = "0 3px 6px rgba(0,0,0,0.1)";
-        
-        // Keep the icon styling separate
-        if (iconRef.current) {
-          iconRef.current.style.backgroundColor = "white";
-          iconRef.current.style.color = color;
-        }
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.backgroundColor = "white";
-        e.currentTarget.style.color = "#495057";
-        e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
-        
-        // Reset icon styling
-        if (iconRef.current) {
-          iconRef.current.style.backgroundColor = `${color}20`;
-          iconRef.current.style.color = color;
-        }
-      }}
-    ><span 
-    ref={iconRef}
-    style={{
-      width: "28px",
-      height: "28px",
-      borderRadius: "50%",
-      backgroundColor: `${color}20`,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      color: color,
-      fontSize: "16px",
-      transition: "all 0.2s ease"
-    }}
-  >
-    {icon}
-  </span>
-  {text}
-</button>
-);
-};
+// Stat Card Component for quick stats
 
-export default RestaurantHome;
+
+export default BillingHome;
