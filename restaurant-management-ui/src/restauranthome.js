@@ -283,7 +283,7 @@ const RestaurantHome = () => {
               title="Billing"
               description="Generate and manage customer bills"
               icon="💰"
-              color="#198754"
+              color="#198754ent"
               onClick={() => console.log("Billing clicked")}
             />
 
