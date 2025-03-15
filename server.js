@@ -1,10 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg"); // Correct import
+const { Pool } = require("pg");
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 5000;
 
 // Database connection
 const pool = new Pool({
@@ -14,19 +14,25 @@ const pool = new Pool({
 // Middleware
 app.use(cors());
 app.use(express.json());
-const userRoutes = require("./routes/users");
-app.use("/users", userRoutes);
-const RestaurantRoutes = require("./routes/RestaurantRoute");
-app.use('/restaurants', RestaurantRoutes);
 
 // Test route
 app.get("/", (req, res) => {
   res.send("Restaurant Management API is running");
 });
 
-// Import Routes
+// Import and use routes
+const userRoutes = require("./routes/users");
+app.use("/users", userRoutes);
+
+const restaurantRoutes = require("./routes/RestaurantRoute");
+app.use('/restaurants', restaurantRoutes);
+
 const revenueRoutes = require("./routes/revenue");
 app.use("/revenue", revenueRoutes);
+
+// Add menu routes - this will handle the dynamic table names
+const menuRoutes = require("./routes/MenuRouter");
+app.use("/", menuRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
