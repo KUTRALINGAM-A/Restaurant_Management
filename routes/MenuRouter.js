@@ -122,4 +122,57 @@ router.get('/menu_:restaurantId', async (req, res) => {
   }
 });
 
+// Delete menu item from a restaurant
+router.delete('/menu_:restaurantId/:itemId', async (req, res) => {
+  try {
+    const { restaurantId, itemId } = req.params;
+    const tableName = `menu_${restaurantId}`;
+    
+    console.log(`Attempting to delete item ${itemId} from table: ${tableName}`);
+    
+    // Check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = $1
+      )`, [tableName]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log(`Table ${tableName} does not exist`);
+      return res.status(404).json({ message: `Table ${tableName} does not exist` });
+    }
+    
+    // First check if the item exists
+    const checkItem = await pool.query(
+      `SELECT * FROM "${tableName}" WHERE id = $1`,
+      [itemId]
+    );
+    
+    if (checkItem.rows.length === 0) {
+      console.log(`Item ${itemId} not found in ${tableName}`);
+      return res.status(404).json({ message: `Item not found` });
+    }
+    
+    // Now delete the item
+    const result = await pool.query(
+      `DELETE FROM "${tableName}" WHERE id = $1 RETURNING *`,
+      [itemId]
+    );
+    
+    console.log(`Item ${itemId} deleted successfully from ${tableName}`);
+    res.json({ 
+      message: 'Item deleted successfully', 
+      deletedItem: result.rows[0] 
+    });
+  } catch (err) {
+    console.error(`Error deleting menu item ${req.params.itemId} from ${req.params.restaurantId}:`, err);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 module.exports = router;

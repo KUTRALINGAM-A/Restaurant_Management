@@ -336,7 +336,7 @@ const MenuManagement = () => {
               icon="🗑️"
               color="#dc3545"
               actionText="Delete Items"
-              onClick={() => navigate("/menu/delete")}
+              onClick={() => navigate("/billing/deleteitem")}
             />
           </div>
         </div>

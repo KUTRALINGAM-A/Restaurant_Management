@@ -217,6 +217,43 @@ const AddMenuItem = () => {
     }
   };
   
+  // Style constants
+  const formGroupStyle = {
+    marginBottom: "20px",
+  };
+
+  const labelStyle = {
+    display: "block",
+    marginBottom: "8px",
+    fontWeight: "500",
+    fontSize: "14px",
+    color: "#343a40",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px 15px",
+    fontSize: "14px",
+    border: "1px solid #ced4da",
+    borderRadius: "8px",
+    transition: "border-color 0.2s ease",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
+  const buttonStyle = {
+    width: "100%",
+    backgroundColor: "#0a58ca",
+    color: "white",
+    padding: "14px",
+    border: "none",
+    borderRadius: "8px",
+    fontWeight: "500",
+    fontSize: "15px",
+    transition: "background-color 0.2s ease",
+    marginTop: "10px",
+  };
+  
   if (loading) {
     return (
       <div style={{
@@ -253,14 +290,15 @@ const AddMenuItem = () => {
   }
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      minHeight: "100vh",
-      backgroundColor: "#f8f9fa",
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    }}>
-        
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundColor: "#f8f9fa",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      }}
+    >
       {/* Header */}
       <header style={{
         backgroundColor: "#ffffff",
@@ -376,19 +414,27 @@ const AddMenuItem = () => {
       <main style={{
         flex: 1,
         display: "flex",
-        flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
-        padding: "40px 20px"
+        padding: "20px",
       }}>
-        <div style={{
-          width: "100%",
-          maxWidth: "700px"
-        }}>
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
+            width: "100%",
+            maxWidth: "700px",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header section */}
           <div style={{
+            padding: "25px 30px",
+            borderBottom: "1px solid #e9ecef",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "30px"
           }}>
             <button
               onClick={handleBackToMenuManagement}
@@ -396,15 +442,15 @@ const AddMenuItem = () => {
                 backgroundColor: "#6c757d",
                 color: "white",
                 border: "none",
-                borderRadius: "4px",
-                padding: "8px 16px",
+                borderRadius: "8px",
+                padding: "10px 14px",
                 cursor: "pointer",
                 fontSize: "14px",
                 fontWeight: "500",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                transition: "all 0.2s ease"
+                transition: "background-color 0.2s ease"
               }}
               onMouseOver={(e) => {
                 e.target.style.backgroundColor = "#5a6268";
@@ -413,289 +459,166 @@ const AddMenuItem = () => {
                 e.target.style.backgroundColor = "#6c757d";
               }}
             >
-              <span>←</span> Back to Menu Management
+              <span>←</span> Back
             </button>
             
-            <h2 style={{
-              fontSize: "24px",
-              color: "#343a40",
-              margin: "0",
-              fontWeight: "600"
-            }}>
-              Add Menu Item
-            </h2>
+            <div style={{ textAlign: "center" }}>
+              <h1 style={{ 
+                margin: "0",
+                fontSize: "24px",
+                fontWeight: "600",
+                color: "#212529" 
+              }}>
+                Add Menu Item
+              </h1>
+              <p style={{
+                margin: "8px 0 0 0",
+                color: "#6c757d",
+                fontSize: "14px"
+              }}>
+                Add a new item to your menu
+              </p>
+            </div>
             
-            <div style={{ width: "120px" }}></div> {/* Empty div for spacing */}
+            <div style={{ width: "84px" }}></div> {/* Empty div for spacing */}
           </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div style={{
-              backgroundColor: "#d4edda",
-              color: "#155724",
-              padding: "12px 20px",
-              marginBottom: "25px",
-              borderRadius: "4px",
-              width: "100%",
-              textAlign: "center",
-              fontWeight: "500",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <span>{successMessage}</span>
-              <button 
-                onClick={() => setSuccessMessage("")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  color: "#155724",
-                  padding: "0 5px"
-                }}
-              >
-                ×
-              </button>
-            </div>
-          )}
-
-          {/* Error notification */}
-          {error && (
-            <div style={{
-              backgroundColor: "#f8d7da",
-              color: "#721c24",
-              padding: "12px 20px",
-              marginBottom: "25px",
-              borderRadius: "4px",
-              width: "100%",
-              textAlign: "center",
-              fontWeight: "500",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <span>{error}</span>
-              <button 
-                onClick={() => setError("")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  color: "#721c24",
-                  padding: "0 5px"
-                }}
-              >
-                ×
-              </button>
-            </div>
-          )}
-
-          {/* Add Menu Item Form */}
-          <div style={{
-            backgroundColor: "#ffffff",
-            borderRadius: "8px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-            padding: "30px",
-            marginBottom: "30px"
-          }}>
-            <form onSubmit={handleSubmit}>
-              {/* Item Name */}
-              <div style={{ marginBottom: "20px" }}>
-                <label 
-                  htmlFor="item_name"
+          {/* Form section */}
+          <div style={{ padding: "25px 30px" }}>
+            {/* Success Message */}
+            {successMessage && (
+              <div style={{
+                backgroundColor: "#d1e7dd",
+                color: "#0f5132",
+                padding: "12px 15px",
+                marginBottom: "25px",
+                borderRadius: "6px",
+                width: "100%",
+                textAlign: "center",
+                fontWeight: "500",
+                fontSize: "14px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <span>{successMessage}</span>
+                <button 
+                  onClick={() => setSuccessMessage("")}
                   style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontWeight: "500",
-                    color: "#343a40"
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    color: "#0f5132",
+                    padding: "0 5px"
                   }}
                 >
-                  Item Name *
-                </label>
-                <input
-                  type="text"
-                  id="item_name"
-                  name="item_name"
-                  value={formData.item_name}
-                  onChange={handleInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    fontSize: "16px",
-                    border: "1px solid #ced4da",
-                    borderRadius: "4px",
-                    boxSizing: "border-box"
-                  }}
-                  placeholder="Enter item name..."
-                  required
-                />
+                  ×
+                </button>
               </div>
-              
-              {/* Description */}
-              <div style={{ marginBottom: "20px" }}>
-                <label 
-                  htmlFor="description"
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontWeight: "500",
-                    color: "#343a40"
-                  }}
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    fontSize: "16px",
-                    border: "1px solid #ced4da",
-                    borderRadius: "4px",
-                    boxSizing: "border-box",
-                    minHeight: "100px",
-                    resize: "vertical"
-                  }}
-                  placeholder="Enter item description..."
-                />
-              </div>
-              
-              {/* Price */}
-              <div style={{ marginBottom: "20px" }}>
-                <label 
-                  htmlFor="price"
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontWeight: "500",
-                    color: "#343a40"
-                  }}
-                >
-                  Price *
-                </label>
+            )}
+
+            {/* Error notification */}
+            
+              {error && (
                 <div style={{
-                  position: "relative",
+                  backgroundColor: "#f8d7da",
+                  color: "#842029",
+                  padding: "12px 15px",
+                  marginBottom: "25px",
+                  borderRadius: "6px",
+                  width: "100%",
+                  textAlign: "center",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center"
                 }}>
-                  <span style={{
-                    position: "absolute",
-                    left: "12px",
-                    color: "#495057"
-                  }}>
-                    $
-                  </span>
+                  <span>{error}</span>
+                  <button 
+                    onClick={() => setError("")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "18px",
+                      color: "#842029",
+                      padding: "0 5px"
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                {/* Item Name */}
+                <div style={formGroupStyle}>
+                  <label htmlFor="item_name" style={labelStyle}>
+                    Item Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="item_name"
+                    name="item_name"
+                    value={formData.item_name}
+                    onChange={handleInputChange}
+                    style={inputStyle}
+                    placeholder="Enter menu item name"
+                  />
+                </div>
+
+                {/* Description */}
+                <div style={formGroupStyle}>
+                  <label htmlFor="description" style={labelStyle}>
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    style={{
+                      ...inputStyle,
+                      height: "120px",
+                      resize: "vertical",
+                    }}
+                    placeholder="Enter item description"
+                  />
+                </div>
+
+                {/* Price */}
+                <div style={formGroupStyle}>
+                  <label htmlFor="price" style={labelStyle}>
+                    Price *
+                  </label>
                   <input
                     type="number"
                     id="price"
                     name="price"
                     value={formData.price}
                     onChange={handleInputChange}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px 10px 24px",
-                      fontSize: "16px",
-                      border: "1px solid #ced4da",
-                      borderRadius: "4px",
-                      boxSizing: "border-box"
-                    }}
-                    placeholder="0.00"
-                    step="0.01"
+                    style={inputStyle}
+                    placeholder="Enter price"
                     min="0"
-                    required
+                    step="0.01"
                   />
                 </div>
-              </div>
-              
-              {/* Category */}
-              <div style={{ marginBottom: "20px" }}>
-                <label 
-                  htmlFor="category"
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontWeight: "500",
-                    color: "#343a40"
-                  }}
-                >
-                  Category *
-                </label>
-                
-                {showCategoryInput ? (
-                  <div style={{
-                    display: "flex",
-                    gap: "10px"
-                  }}>
-                    <input
-                      type="text"
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      style={{
-                        flex: "1",
-                        padding: "10px 12px",
-                        fontSize: "16px",
-                        border: "1px solid #ced4da",
-                        borderRadius: "4px",
-                        boxSizing: "border-box"
-                      }}
-                      placeholder="Enter new category..."
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddCategory}
-                      style={{
-                        backgroundColor: "#28a745",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        padding: "10px 15px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500"
-                      }}
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowCategoryInput(false)}
-                      style={{
-                        backgroundColor: "#6c757d",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        padding: "10px 15px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500"
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
+
+                {/* Category */}
+                <div style={formGroupStyle}>
+                  <label htmlFor="category" style={labelStyle}>
+                    Category *
+                  </label>
                   <select
                     id="category"
                     name="category"
                     value={formData.category}
                     onChange={handleCategoryChange}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "16px",
-                      border: "1px solid #ced4da",
-                      borderRadius: "4px",
-                      boxSizing: "border-box",
-                      backgroundColor: "white"
-                    }}
-                    required
+                    style={inputStyle}
                   >
                     <option value="">Select a category</option>
                     {categories.map((category, index) => (
@@ -703,21 +626,57 @@ const AddMenuItem = () => {
                         {category}
                       </option>
                     ))}
-                    <option value="add_new">+ Add new category</option>
+                    <option value="add_new">+ Add New Category</option>
                   </select>
+                </div>
+
+                {/* New Category Input */}
+                {showCategoryInput && (
+                  <div style={formGroupStyle}>
+                    <label htmlFor="new_category" style={labelStyle}>
+                      New Category
+                    </label>
+                    <div style={{
+                      display: "flex",
+                      gap: "10px"
+                    }}>
+                      <input
+                        type="text"
+                        id="new_category"
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        style={{
+                          ...inputStyle,
+                          flex: 1
+                        }}
+                        placeholder="Enter new category name"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCategory}
+                        style={{
+                          backgroundColor: "#198754",
+                          color: "white",
+                          padding: "10px 15px",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontWeight: "500"
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </div>
-              
-              {/* Availability */}
-              <div style={{ marginBottom: "30px" }}>
-                <label 
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    cursor: "pointer"
-                  }}
-                >
+
+                {/* Availability */}
+                <div style={{
+                  ...formGroupStyle,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px"
+                }}>
                   <input
                     type="checkbox"
                     id="available"
@@ -730,51 +689,36 @@ const AddMenuItem = () => {
                       cursor: "pointer"
                     }}
                   />
-                  <span style={{
+                  <label htmlFor="available" style={{
+                    fontSize: "14px",
                     fontWeight: "500",
-                    color: "#343a40"
+                    color: "#343a40",
+                    cursor: "pointer"
                   }}>
                     Item is available
-                  </span>
-                </label>
-              </div>
-              
-              {/* Submit Button */}
-              <div style={{
-                display: "flex",
-                justifyContent: "center"
-              }}>
+                  </label>
+                </div>
+
+                {/* Submit Button */}
                 <button
                   type="submit"
-                  style={{
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "12px 24px",
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    fontWeight: "500",
-                    minWidth: "150px",
-                    transition: "all 0.2s ease"
-                  }}
+                  style={buttonStyle}
                   onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#0069d9";
+                    e.target.style.backgroundColor = "#0d6efd";
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "#007bff";
+                    e.target.style.backgroundColor = "#0a58ca";
                   }}
                 >
                   Add Menu Item
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      </main>
-      
-      {/* Footer */}
-      <footer style={{
+        </main>
+
+        {/* Footer */}
+        <footer style={{
         backgroundColor: "#ffffff",
         borderTop: "1px solid #e9ecef",
         padding: "15px 0",
@@ -792,8 +736,8 @@ const AddMenuItem = () => {
           <p style={{ margin: 0, fontSize: "12px" }}>© Flamingoes 2025. All Rights Reserved.</p>
         </div>
       </footer>
-    </div>
-  );
+      </div>
+    );
 };
 
 export default AddMenuItem;
