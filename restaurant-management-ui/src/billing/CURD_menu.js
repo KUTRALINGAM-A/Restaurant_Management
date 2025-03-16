@@ -326,7 +326,7 @@ const MenuManagement = () => {
               icon="✏️"
               color="#0d6efd"
               actionText="Edit Items"
-              onClick={() => navigate("/menu/edit")}
+              onClick={() => navigate("/billing/edititem")}
             />
 
             {/* Delete Menu Card */}

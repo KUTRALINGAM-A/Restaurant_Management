@@ -146,7 +146,14 @@ const DeleteMenuItem = () => {
         navigate("/");
         return;
       }
-
+      await axios.delete(
+        `http://localhost:5000/menu_${restaurantId}/${confirmDelete}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       
 
       
