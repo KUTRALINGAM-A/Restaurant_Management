@@ -122,6 +122,64 @@ router.get('/menu_:restaurantId', async (req, res) => {
   }
 });
 
+// Update menu item for a restaurant
+router.put('/menu_:restaurantId/:itemId', async (req, res) => {
+  try {
+    const { restaurantId, itemId } = req.params;
+    const tableName = `menu_${restaurantId}`;
+    const { item_name, description, price, category, available } = req.body;
+    
+    console.log(`Attempting to update item ${itemId} in table: ${tableName}`);
+    console.log(`Request body:`, req.body);
+    
+    // Check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = $1
+      )`, [tableName]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log(`Table ${tableName} does not exist`);
+      return res.status(404).json({ message: `Table ${tableName} does not exist` });
+    }
+    
+    // Check if the item exists
+    const checkItem = await pool.query(
+      `SELECT * FROM "${tableName}" WHERE id = $1`,
+      [itemId]
+    );
+    
+    if (checkItem.rows.length === 0) {
+      console.log(`Item ${itemId} not found in ${tableName}`);
+      return res.status(404).json({ message: `Item not found` });
+    }
+    
+    // Update the item
+    const result = await pool.query(
+      `UPDATE "${tableName}" 
+       SET item_name = $1, description = $2, price = $3, category = $4, available = $5
+       WHERE id = $6 
+       RETURNING *`,
+      [item_name, description, price, category, available, itemId]
+    );
+    
+    console.log(`Item ${itemId} updated successfully in ${tableName}`);
+    res.json({
+      message: 'Item updated successfully',
+      updatedItem: result.rows[0]
+    });
+  } catch (err) {
+    console.error(`Error updating menu item ${req.params.itemId} in ${req.params.restaurantId}:`, err);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 // Delete menu item from a restaurant
 router.delete('/menu_:restaurantId/:itemId', async (req, res) => {
   try {
