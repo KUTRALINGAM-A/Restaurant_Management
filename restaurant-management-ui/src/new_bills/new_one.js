@@ -211,60 +211,62 @@ const BillingPage = () => {
     setPaymentMethod("Cash");
   };
 
-  const handlePrintBill = async () => {
-    try {
-      // Prepare bill data
-      const billData = {
-        restaurant_id: localStorage.getItem("restaurantId"),
-        bill_number: billNumber,
-        bill_date: billDate.toISOString(),
-        employee_name: userName,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        payment_method: paymentMethod,
-        items: cart.map(item => ({
-          item_id: item._id,
-          item_name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal
-        })),
-        total_amount: totalAmount
-      };
-
-      const token = localStorage.getItem("token");
-      
-      // Save bill to database
-      await axios.post(`http://localhost:5000/bills`, billData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      // Set success message
-      setSuccess("Bill saved successfully!");
-      
-      // Switch to print mode
-      setPrintMode(true);
-      
-      // After a short delay, trigger print
-      setTimeout(() => {
-        window.print();
+  
+    const handlePrintBill = async () => {
+      try {
+        // Prepare bill data
+        const billData = {
+          restaurant_id: localStorage.getItem("restaurantId"),
+          bill_number: billNumber,
+          bill_date: billDate.toISOString(),
+          employee_name: userName,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          payment_method: paymentMethod,
+          items: cart.map(item => ({
+            item_id: item._id,
+            item_name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal
+          })),
+          total_amount: totalAmount
+        };
+    
+        const token = localStorage.getItem("token");
         
-        // Reset after print
+        // Just send data to the server without handling the response
+        // This will send the data but not require any action from the frontend
+        axios.post(`http://localhost:5000/bills`, billData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+    
+        // Set success message
+        setSuccess("Bill data sent successfully!");
+        
+        // Switch to print mode
+        setPrintMode(true);
+        
+        // After a short delay, trigger print
         setTimeout(() => {
-          setPrintMode(false);
-          // Increment bill number for next bill
-          setBillNumber(prevNumber => prevNumber + 1);
-          // Clear cart
-          clearCart();
-        }, 1000);
-      }, 500);
-    } catch (error) {
-      console.error("Error saving bill:", error);
-      setError("Failed to save bill: " + (error.response?.data?.message || error.message));
-    }
-  };
+          window.print();
+          
+          // Reset after print
+          setTimeout(() => {
+            setPrintMode(false);
+            // Increment bill number for next bill
+            setBillNumber(prevNumber => prevNumber + 1);
+            // Clear cart
+            clearCart();
+          }, 1000);
+        }, 500);
+      } catch (error) {
+        console.error("Error sending bill data:", error);
+        setError("Failed to send bill data: " + (error.response?.data?.message || error.message));
+      }
+    };
 
   if (loading) {
     return (

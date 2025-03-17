@@ -34,6 +34,10 @@ app.use("/revenue", revenueRoutes);
 const menuRoutes = require("./routes/MenuRouter");
 app.use("/", menuRoutes);
 
+const billRoutes = require("./routes/BillRouter");
+app.use("/bills", billRoutes);
+
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
