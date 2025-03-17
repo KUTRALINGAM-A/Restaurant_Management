@@ -187,7 +187,8 @@ const DeleteMenuItem = () => {
   // Filter menu items based on search and category
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
+                          item.description.toLowerCase().includes(searchTerm.toLowerCase())||
+                          item.price.includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -654,7 +655,7 @@ const DeleteMenuItem = () => {
                           fontWeight: "500",
                           color: "#212529"
                         }}>
-                          ${formatPrice(item.price)}
+                          ₹{formatPrice(item.price)}
                         </td>
                         <td style={{
                           padding: "15px",

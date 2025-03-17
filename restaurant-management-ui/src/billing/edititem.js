@@ -187,8 +187,12 @@ const EditMenu = () => {
   // Filter items based on search term and category
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesSearch = 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.price.includes(searchTerm);
+    
     return matchesCategory && matchesSearch;
   });
 
@@ -485,381 +489,381 @@ const EditMenu = () => {
                     e.target.style.boxShadow = "none";
                   }}
                 />
-              </div>
-              
-              {/* Category filter */}
-              <div style={{
-                minWidth: "200px"
-              }}>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "#495057",
-                  fontWeight: "500"
-                }}>
-                  Filter by Category
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 15px",
-                    borderRadius: "4px",
-                    border: "1px solid #ced4da",
-                    fontSize: "15px",
-                    color: "#495057",
-                    backgroundColor: "#fff",
-                    transition: "border-color 0.15s ease-in-out",
-                    outline: "none",
-                    cursor: "pointer"
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#86b7fe";
-                    e.target.style.boxShadow = "0 0 0 0.25rem rgba(13, 110, 253, 0.25)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#ced4da";
-                    e.target.style.boxShadow = "none";
-                  }}
-                >
-                  <option value="All">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Menu items list */}
-          {filteredItems.length === 0 ? (
-            <div style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-              padding: "30px 20px",
-              textAlign: "center",
-              color: "#6c757d"
-            }}>
-              <p style={{
-                fontSize: "16px",
-                margin: "0"
-              }}>
-                No menu items found matching your search criteria.
-              </p>
-            </div>
-          ) : (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-              gap: "20px"
-            }}>
-              {filteredItems.map(item => (
-                <div key={item._id} style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  padding: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "15px"
-                }}>
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start"
-                  }}>
-                    <div>
-                      <h3 style={{
-                        margin: "0 0 5px",
-                        fontSize: "18px",
-                        fontWeight: "600",
-                        color: "#212529"
-                      }}>
-                        {item.name}
-                      </h3>
-                      <span style={{
-                        fontSize: "14px",
-                        color: "#6c757d",
-                        backgroundColor: "#e9ecef",
-                        padding: "3px 8px",
-                        borderRadius: "4px",
-                        display: "inline-block"
-                      }}>
-                        {item.category}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: "18px",
-                      fontWeight: "600",
-                      color: "#343a40"
-                    }}>
-                       ${(typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price || 0).toFixed(2))}
-                    </span>
-                  </div>
-
-                  <p style={{
-                    margin: "0",
-                    color: "#6c757d",
-                    fontSize: "15px",
-                    lineHeight: "1.5"
-                  }}>
-                    {item.description}
-                  </p>
-
-                  <div style={{
-                    marginTop: "auto",
-                    display: "flex",
-                    justifyContent: "flex-end"
-                  }}>
-                    <button
-                      onClick={() => handleEditClick(item)}
-                      style={{
-                        backgroundColor: "#0d6efd",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        padding: "8px 16px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        transition: "all 0.2s ease"
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.backgroundColor = "#0b5ed7";
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.backgroundColor = "#0d6efd";
-                      }}
-                    >
-                      Edit Item
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Edit Item Modal */}
-      {editItem && (
-        <div style={{
-          position: "fixed",
-          top: "0",
-          left: "0",
-          right: "0",
-          bottom: "0",
-          backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: "1000"
-        }}>
-          <div style={{
-            backgroundColor: "#ffffff",
-            borderRadius: "8px",
-            width: "90%",
-            maxWidth: "550px",
-            padding: "25px",
-            boxShadow: "0 5px 15px rgba(0,0,0,0.2)"
-          }}>
-            <h3 style={{
-              margin: "0 0 20px",
-              color: "#212529",
-              fontSize: "20px",
-              fontWeight: "600"
-            }}>
-              Edit Menu Item
-            </h3>
-            
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "15px"
-            }}>
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "#495057",
-                  fontWeight: "500"
-                }}>
-                  Item Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editItem.name}
-                  onChange={handleInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 15px",
-                    borderRadius: "4px",
-                    border: "1px solid #ced4da",
-                    fontSize: "15px",
-                    color: "#495057",
-                    backgroundColor: "#fff",
-                    outline: "none"
-                  }}
-                />
-              </div>
-              
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "#495057",
-                  fontWeight: "500"
-                }}>
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={editItem.description}
-                  onChange={handleInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 15px",
-                    borderRadius: "4px",
-                    border: "1px solid #ced4da",
-                    fontSize: "15px",
-                    color: "#495057",
-                    backgroundColor: "#fff",
-                    outline: "none",
-                    resize: "vertical",
-                    minHeight: "100px"
-                  }}
-                />
-              </div>
-              
-              <div style={{
-                display: "flex",
-                gap: "15px"
-              }}>
-                <div style={{ flex: "1" }}>
-                  <label style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                    color: "#495057",
-                    fontWeight: "500"
-                  }}>
-                    Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="price"
-                    value={editItem.price}
-                    onChange={handleInputChange}
-                    style={{
-                      width: "100%",
-                      padding: "10px 15px",
-                      borderRadius: "4px",
-                      border: "1px solid #ced4da",
-                      fontSize: "15px",
-                      color: "#495057",
-                      backgroundColor: "#fff",
-                      outline: "none"
-                    }}
-                  />
-                </div>
+                              </div>
+                              
+                              {/* Category filter */}
+                              <div style={{
+                                minWidth: "200px"
+                              }}>
+                                <label style={{
+                                  display: "block",
+                                  marginBottom: "8px",
+                                  fontSize: "14px",
+                                  color: "#495057",
+                                  fontWeight: "500"
+                                }}>
+                                  Filter by Category
+                                </label>
+                                <select
+                                  value={selectedCategory}
+                                  onChange={(e) => setSelectedCategory(e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "10px 15px",
+                                    borderRadius: "4px",
+                                    border: "1px solid #ced4da",
+                                    fontSize: "15px",
+                                    color: "#495057",
+                                    backgroundColor: "#fff",
+                                    transition: "border-color 0.15s ease-in-out",
+                                    outline: "none",
+                                    cursor: "pointer"
+                                  }}
+                                  onFocus={(e) => {
+                                    e.target.style.borderColor = "#86b7fe";
+                                    e.target.style.boxShadow = "0 0 0 0.25rem rgba(13, 110, 253, 0.25)";
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.borderColor = "#ced4da";
+                                    e.target.style.boxShadow = "none";
+                                  }}
+                                >
+                                  <option value="All">All Categories</option>
+                                  {categories.map(category => (
+                                    <option key={category} value={category}>{category}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                 
-                <div style={{ flex: "1" }}>
-                  <label style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                    color: "#495057",
-                    fontWeight: "500"
-                  }}>
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={editItem.category}
-                    onChange={handleInputChange}
-                    style={{
-                      width: "100%",
-                      padding: "10px 15px",
-                      borderRadius: "4px",
-                      border: "1px solid #ced4da",
-                      fontSize: "15px",
-                      color: "#495057",
-                      backgroundColor: "#fff",
-                      outline: "none",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "15px",
-                marginTop: "15px"
-              }}>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    backgroundColor: "#6c757d",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "10px 20px",
-                    cursor: "pointer",
-                    fontSize: "15px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#5a6268";
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "#6c757d";
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateItem}
-                  style={{
-                    backgroundColor: "#198754",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "10px 20px",
-                    cursor: "pointer",
-                    fontSize: "15px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#157347";
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "#198754";
-                  }}
-                >
-                  Update Item
-                </button>
-              </div>
-            </div>
-          </div>
+                          {/* Menu items list */}
+                          {filteredItems.length === 0 ? (
+                            <div style={{
+                              backgroundColor: "#ffffff",
+                              borderRadius: "8px",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                              padding: "30px 20px",
+                              textAlign: "center",
+                              color: "#6c757d"
+                            }}>
+                              <p style={{
+                                fontSize: "16px",
+                                margin: "0"
+                              }}>
+                                No menu items found matching your search criteria.
+                              </p>
+                            </div>
+                          ) : (
+                            <div style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                              gap: "20px"
+                            }}>
+                              {filteredItems.map(item => (
+                                <div key={item._id} style={{
+                                  backgroundColor: "#ffffff",
+                                  borderRadius: "8px",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                  padding: "20px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "15px"
+                                }}>
+                                  <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start"
+                                  }}>
+                                    <div>
+                                      <h3 style={{
+                                        margin: "0 0 5px",
+                                        fontSize: "18px",
+                                        fontWeight: "600",
+                                        color: "#212529"
+                                      }}>
+                                        {item.name}
+                                      </h3>
+                                      <span style={{
+                                        fontSize: "14px",
+                                        color: "#6c757d",
+                                        backgroundColor: "#e9ecef",
+                                        padding: "3px 8px",
+                                        borderRadius: "4px",
+                                        display: "inline-block"
+                                      }}>
+                                        {item.category}
+                                      </span>
+                                    </div>
+                                    <span style={{
+                                      fontSize: "18px",
+                                      fontWeight: "600",
+                                      color: "#343a40"
+                                    }}>
+                                       ₹{(typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price || 0).toFixed(2))}
+                                    </span>
+                                  </div>
+                
+                                  <p style={{
+                                    margin: "0",
+                                    color: "#6c757d",
+                                    fontSize: "15px",
+                                    lineHeight: "1.5"
+                                  }}>
+                                    {item.description}
+                                  </p>
+                
+                                  <div style={{
+                                    marginTop: "auto",
+                                    display: "flex",
+                                    justifyContent: "flex-end"
+                                  }}>
+                                    <button
+                                      onClick={() => handleEditClick(item)}
+                                      style={{
+                                        backgroundColor: "#0d6efd",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px",
+                                        padding: "8px 16px",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: "500",
+                                        transition: "all 0.2s ease"
+                                      }}
+                                      onMouseOver={(e) => {
+                                        e.target.style.backgroundColor = "#0b5ed7";
+                                      }}
+                                      onMouseOut={(e) => {
+                                        e.target.style.backgroundColor = "#0d6efd";
+                                      }}
+                                    >
+                                      Edit Item
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </main>
+                
+                      {/* Edit Item Modal */}
+                      {editItem && (
+                        <div style={{
+                          position: "fixed",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          zIndex: 1000,
+                          padding: "20px"
+                        }}>
+                          <div style={{
+                            backgroundColor: "#ffffff",
+                            borderRadius: "8px",
+                            width: "100%",
+                            maxWidth: "500px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            padding: "25px"
+                          }}>
+                            <h3 style={{
+                              margin: "0 0 20px",
+                              fontSize: "20px",
+                              fontWeight: "600"
+                            }}>
+                              Edit Menu Item
+                            </h3>
+                            
+                            {/* Form fields */}
+                            <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "20px"
+                            }}>
+                              {/* Item name */}
+                              <div>
+                                <label style={{
+                                  display: "block",
+                                  marginBottom: "8px",
+                                  fontSize: "14px",
+                                  color: "#495057",
+                                  fontWeight: "500"
+                                }}>
+                                  Item Name
+                                </label>
+                                <input
+                                  type="text"
+                                  name="name"
+                                  value={editItem.name}
+                                  onChange={handleInputChange}
+                                  style={{
+                                    width: "100%",
+                                    padding: "10px 4px",
+                                    borderRadius: "4px",
+                                    border: "1px solid #ced4da",
+                                    fontSize: "15px"
+                                  }}
+                                />
+                              </div>
+                              
+                              {/* Description */}
+                              <div>
+                                <label style={{
+                                  display: "block",
+                                  marginBottom: "8px",
+                                  fontSize: "14px",
+                                  color: "#495057",
+                                  fontWeight: "500"
+                                }}>
+                                  Description
+                                </label>
+                                <textarea
+                                  name="description"
+                                  value={editItem.description}
+                                  onChange={handleInputChange}
+                                  style={{
+                                    width: "100%",
+                                    padding: "10px 4px",
+                                    borderRadius: "4px",
+                                    border: "1px solid #ced4da",
+                                    fontSize: "15px",
+                                    minHeight: "100px",
+                                    resize: "vertical"
+                                  }}
+                                />
+                              </div>
+                              
+                              {/* Price and Category in a row */}
+                              <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: "15px"
+                              }}>
+                                <div>
+                                  <label style={{
+                                    display: "block",
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    color: "#495057",
+                                    fontWeight: "500"
+                                  }}>
+                                    Price (₹)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    name="price"
+                                    value={editItem.price}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 15px",
+                                      borderRadius: "4px",
+                                      border: "1px solid #ced4da",
+                                      fontSize: "15px"
+                                    }}
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label style={{
+                                    display: "block",
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    color: "#495057",
+                                    fontWeight: "500"
+                                  }}>
+                                    Category
+                                  </label>
+                                  <select
+                                    name="category"
+                                    value={editItem.category}
+                                    onChange={handleInputChange}
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px 15px",
+                                      borderRadius: "4px",
+                                      border: "1px solid #ced4da",
+                                      fontSize: "15px",
+                                      backgroundColor: "#fff"
+                                    }}
+                                  >
+                                    {categories.map(category => (
+                                      <option key={category} value={category}>
+                                        {category}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              
+                              {/* Buttons */}
+                              <div style={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: "10px",
+                                marginTop: "10px"
+                              }}>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  style={{
+                                    backgroundColor: "#6c757d",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    padding: "10px 16px",
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={handleUpdateItem}
+                                  style={{
+                                    backgroundColor: "#28a745",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    padding: "10px 16px",
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                  }}
+                                >
+                                  Update Item
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                       <footer style={{
+        backgroundColor: "#ffffff",
+        borderTop: "1px solid #e9ecef",
+        padding: "15px 0",
+        textAlign: "center",
+        color: "#6c757d",
+        fontSize: "14px"
+      }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "5px"
+        }}>
+          <p style={{ margin: 0 }}>A product of Flamingoes</p>
+          <p style={{ margin: 0, fontSize: "12px" }}>© Flamingoes 2025. All Rights Reserved.</p>
         </div>
-      )}
-    </div>
-  );
-};
-
-export default EditMenu;
+      </footer>
+                    </div>
+                  );
+                };
+                
+                export default EditMenu;

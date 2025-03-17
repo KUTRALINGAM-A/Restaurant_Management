@@ -329,7 +329,7 @@ const RestaurantHome = () => {
                 icon="$"
                 text="New Bill"
                 color="#198754"
-                onClick={() => console.log("Quick billing clicked")}
+                onClick={() => navigate("/new_bills/new_one")}
               />
               
               <QuickActionButton

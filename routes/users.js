@@ -1,4 +1,3 @@
-// Updated Users Router with logo handling functionality
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -115,6 +114,36 @@ router.post("/register", upload.single('logo'), async (req, res) => {
                     category VARCHAR NOT NULL,
                     available BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT NOW()
+                );
+            `);
+
+            // Create bills table for the restaurant
+            await client.query(`
+                CREATE TABLE "bills_${newRestaurantId}" (
+                    id SERIAL PRIMARY KEY,
+                    restaurant_id INTEGER NOT NULL REFERENCES restaurants(id),
+                    bill_number INTEGER NOT NULL,
+                    bill_date TIMESTAMP NOT NULL,
+                    employee_id INTEGER NOT NULL REFERENCES "employees_${newRestaurantId}"(id),
+                    employee_name VARCHAR(255) NOT NULL,
+                    customer_name VARCHAR(255),
+                    customer_phone VARCHAR(255),
+                    payment_method VARCHAR(50) NOT NULL,
+                    total_amount DECIMAL(10, 2) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            // Create bill_items table for the restaurant
+            await client.query(`
+                CREATE TABLE "bill_items_${newRestaurantId}" (
+                    id SERIAL PRIMARY KEY,
+                    bill_id INTEGER NOT NULL REFERENCES "bills_${newRestaurantId}"(id),
+                    item_id INTEGER NOT NULL REFERENCES "menu_${newRestaurantId}"(id),
+                    item_name VARCHAR(255) NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    price DECIMAL(10, 2) NOT NULL,
+                    subtotal DECIMAL(10, 2) NOT NULL
                 );
             `);
         } else {
