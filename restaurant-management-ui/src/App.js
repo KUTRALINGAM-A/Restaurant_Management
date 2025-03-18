@@ -9,8 +9,10 @@ import BillingHome from "./billinghome";
 import Curd from "./billing/CURD_menu";
 import Add from "./billing/additem";
 import Delete from "./billing/deleteitem";
-import Edit from "./billing/edititem"
-import Newbill from "./new_bills/new_one"
+import Edit from "./billing/edititem";
+import Newbill from "./new_bills/new_one";
+import Attendance from "./attendance/attendance_home";
+import Mark_attendance from "./attendance/mark_attendance";
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -37,6 +39,8 @@ const App = () => {
         <Route path="/billing/deleteitem" element={<Delete />} />
         <Route path="/billing/edititem" element={<Edit />} />
         <Route path="/new_bills/new_one" element={<Newbill />} />
+        <Route path="/attendance/attendance_home" element={<Attendance />} />
+        <Route path="/attendance/mark_attendance" element={<Mark_attendance />} />
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 

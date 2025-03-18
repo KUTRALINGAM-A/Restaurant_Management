@@ -37,6 +37,10 @@ app.use("/", menuRoutes);
 const billRoutes = require("./routes/BillRouter");
 app.use("/bills", billRoutes);
 
+// Important: Mount the attendance router at /api to match frontend expectations
+const attendanceRoutes = require("./routes/attendance_router");
+app.use("/employees", attendanceRoutes);
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

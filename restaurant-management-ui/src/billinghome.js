@@ -326,7 +326,7 @@ const BillingHome = () => {
               icon="📝"
               color="#198754"
               actionText="Create Bill"
-              onClick={() => navigate("/billing/new-bill")}
+              onClick={() => navigate("/new_bills/new_one")}
             />
 
             {/* Bill Reports Card */}
