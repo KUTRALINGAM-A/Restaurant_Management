@@ -14,6 +14,21 @@ const MarkAttendance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // Function to handle API errors and display them properly
+  const getErrorMessage = (error) => {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      return `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+    } else if (error.request) {
+      // The request was made but no response was received
+      return "No response from server. Please check your connection.";
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      return `Error: ${error.message}`;
+    }
+  };
+
   useEffect(() => {
     // Check for token and restaurant ID
     const token = localStorage.getItem("token");
@@ -29,38 +44,66 @@ const MarkAttendance = () => {
       setRestaurantName(storedRestaurantName);
     }
 
-    fetchEmployees(restaurantId, token);
-  }, [navigate]);
-
-  const fetchEmployees = async (restaurantId, token) => {
-    try {
-      // API endpoint to get employees
-      const response = await axios.get(
-        `http://localhost:5000/employees_${restaurantId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
+    // Check if attendance exists for today
+    const checkAttendance = async () => {
+      try {
+        const attendanceResponse = await axios.get(
+          `http://localhost:5000/employees/attendance/${restaurantId}/${date}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
+        );
+        
+        if (attendanceResponse.data.success && attendanceResponse.data.attendance.length > 0) {
+          setSubmitSuccess(true);
+          setTimeout(() => {
+            setSubmitSuccess(false);
+          }, 3000);
         }
-      );
-      
-      // Check if response data is an array
-      const employeeData = Array.isArray(response.data) ? response.data : [];
-      
-      // Initialize attendance status for all employees as "present"
-      const employeesWithAttendance = employeeData.map(emp => ({
-        ...emp,
-        attendanceStatus: "present"
-      }));
-      
-      setEmployees(employeesWithAttendance);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching employees:", err);
-      setError(`Failed to load employees: ${getErrorMessage(err)}`);
-      setLoading(false);
-    }
-  };
+      } catch (err) {
+        console.error("Error checking attendance:", err);
+        // Don't set error here, just log it
+      }
+    };
+
+    // Define fetchEmployees inside useEffect to avoid dependency issues
+    const fetchEmployees = async () => {
+      try {
+        // API endpoint to get employees
+        const response = await axios.get(
+          `http://localhost:5000/employees/${restaurantId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        
+        // Check if response data is an array
+        const employeeData = Array.isArray(response.data) ? response.data : [];
+        
+        // Initialize attendance status for all employees as "present"
+        const employeesWithAttendance = employeeData.map(emp => ({
+          ...emp,
+          attendanceStatus: "present"
+        }));
+        
+        setEmployees(employeesWithAttendance);
+        setLoading(false);
+        
+        // Check if attendance exists for today
+        checkAttendance();
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+        setError(`Failed to load employees: ${getErrorMessage(err)}`);
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, [navigate, date]); // Added date to dependency array to refresh when date changes
 
   const handleAttendanceChange = (employeeId, status) => {
     setEmployees(employees.map(emp => 
@@ -89,6 +132,8 @@ const MarkAttendance = () => {
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
+      setError(""); // Clear any previous errors
+      
       const token = localStorage.getItem("token");
       const restaurantId = localStorage.getItem("restaurantId");
       
@@ -101,17 +146,14 @@ const MarkAttendance = () => {
         employeeId: emp.id,
         employeeName: emp.name,
         employeeRole: emp.role || "staff", // Ensure role is never null/undefined
-        employeeEmail: emp.email,
-        employeePhone: emp.phone,
-        status: emp.attendanceStatus,
         date: date,
-        remarks: remarks[emp.id] || "",
-        restaurantId
+        status: emp.attendanceStatus,
+        remarks: remarks[emp.id] || ""
       }));
       
-      // Submit attendance data
+      // Submit attendance data - make sure this matches the backend route
       await axios.post(
-        "http://localhost:5000/api/attendance/mark",
+        `http://localhost:5000/employees/attendance/${restaurantId}`,
         { attendanceData },
         {
           headers: {
@@ -131,21 +173,6 @@ const MarkAttendance = () => {
       console.error("Error submitting attendance:", err);
       setError(`Failed to submit attendance: ${getErrorMessage(err)}`);
       setSubmitting(false);
-    }
-  };
-
-  // Function to handle API errors and display them properly
-  const getErrorMessage = (error) => {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      return `Server error: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
-    } else if (error.request) {
-      // The request was made but no response was received
-      return "No response from server. Please check your connection.";
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      return `Error: ${error.message}`;
     }
   };
 
@@ -300,9 +327,6 @@ const MarkAttendance = () => {
           </div>
         )}
 
-        {/* Debug Info - Remove in production */}
-       
-
         {/* Bulk actions */}
         <div style={{
           backgroundColor: "#ffffff",
@@ -447,16 +471,12 @@ const MarkAttendance = () => {
               ))
             )}
           </div>
-        </main>
-  
-        {/* Footer/Submit button */}
-        <footer style={{
-          backgroundColor: "#ffffff",
-          padding: "15px 25px",
-          borderTop: "1px solid #e9ecef",
-          display: "flex",
-          justifyContent: "flex-end",
-        }}>
+          <div style={{
+  display: "flex",
+  justifyContent: "center",
+  marginTop: "20px",
+  marginBottom: "20px"
+}}>
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -474,7 +494,28 @@ const MarkAttendance = () => {
           >
             {submitting ? "Submitting..." : "Submit Attendance"}
           </button>
-        </footer>
+          </div>
+        </main>
+  
+        {/* Footer/Submit button */}
+        <footer style={{
+        backgroundColor: "#ffffff",
+        borderTop: "1px solid #e9ecef",
+        padding: "15px 0",
+        textAlign: "center",
+        color: "#6c757d",
+        fontSize: "14px"
+      }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "5px"
+        }}>
+          <p style={{ margin: 0 }}>A product of Flamingoes</p>
+          <p style={{ margin: 0, fontSize: "12px" }}>© Flamingoes 2025. All Rights Reserved.</p>
+        </div>
+      </footer>
       </div>
     );
   };

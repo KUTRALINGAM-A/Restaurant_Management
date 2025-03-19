@@ -65,7 +65,7 @@ router.post('/employees/:restaurantId', auth, async (req, res) => {
 });
 
 // Get all employees for a restaurant - MODIFIED to match UI expectations
-router.get('/employees_:restaurantId', auth, async (req, res) => {
+router.get('/:restaurantId', auth, async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
@@ -367,14 +367,15 @@ router.get('/employees/search/:restaurantId', auth, async (req, res) => {
   }
 });
 
-// ADDED: New endpoint to support the attendance marking functionality
-router.post('/attendance/mark', auth, async (req, res) => {
+// FIXED: Changed the route to match the frontend's URL structure
+router.post('/attendance/:restaurantId', auth, async (req, res) => {
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
     
     const { attendanceData } = req.body;
+    const { restaurantId } = req.params;
     
     if (!attendanceData || !Array.isArray(attendanceData) || attendanceData.length === 0) {
       return res.status(400).json({
@@ -382,12 +383,6 @@ router.post('/attendance/mark', auth, async (req, res) => {
         message: "Invalid attendance data"
       });
     }
-    
-    // Assuming you have an attendance table structure like:
-    // attendance_[restaurantId](id, employee_id, date, status, remarks, created_at)
-    
-    // Use a single restaurantId for all entries (should be the same)
-    const restaurantId = attendanceData[0].restaurantId;
     
     // Check if the table exists, create if it doesn't
     await client.query(`
@@ -421,7 +416,7 @@ router.post('/attendance/mark', auth, async (req, res) => {
           record.employeeRole,
           record.date,
           record.status,
-          record.remarks
+          record.remarks || '' // Ensure remarks is not null
         ]
       );
     }
@@ -482,6 +477,50 @@ router.get('/attendance/:restaurantId/:date', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to get attendance",
+      error: error.message
+    });
+  }
+});
+
+// NEW: Get attendance data for a specific employee within a date range
+router.get('/employees/attendance/:restaurantId/employee/:employeeId', auth, async (req, res) => {
+  try {
+    const { restaurantId, employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date and end date are required"
+      });
+    }
+    
+    // Check if the attendance table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`attendance_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json([]);
+    }
+    
+    const result = await pool.query(
+      `SELECT * FROM attendance_${restaurantId}
+       WHERE employee_id = $1 AND date BETWEEN $2 AND $3
+       ORDER BY date ASC`,
+      [employeeId, startDate, endDate]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error getting employee attendance:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get employee attendance",
       error: error.message
     });
   }

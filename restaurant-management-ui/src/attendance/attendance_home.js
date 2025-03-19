@@ -326,7 +326,7 @@ const AttendanceHome = () => {
               icon="📝"
               color="#0d6efd"
               actionText="View Records"
-              onClick={() => navigate("/attendance/view")}
+              onClick={() => navigate("/attendance/view_attendance")}
             />
 
             {/* Attendance Reports Card */}
