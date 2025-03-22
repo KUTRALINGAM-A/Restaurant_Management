@@ -44,7 +44,7 @@ const App = () => {
         <Route path="/attendance/attendance_home" element={<Attendance />} />
         <Route path="/attendance/mark_attendance" element={<MarkAttendance />}/>
         <Route path="/attendance/view_attendance" element={<ViewAttendance />}/>
-        <Route path="/reports/bill_report2" element={<BillReport />}/>
+        <Route path="/reports/bill_report" element={<BillReport />}/>
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 
