@@ -336,7 +336,7 @@ const BillingHome = () => {
               icon="📊"
               color="#fd7e14"
               actionText="View Reports"
-              onClick={() => navigate("/billing/reports")}
+              onClick={() => navigate("/reports/bill_report")}
             />
           </div>
 

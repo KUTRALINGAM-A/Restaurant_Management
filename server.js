@@ -37,10 +37,19 @@ app.use("/", menuRoutes);
 const billRoutes = require("./routes/BillRouter");
 app.use("/bills", billRoutes);
 
+// Reports and analytics routes
+const reportRoutes = require("./routes/bill_report_router");
+app.use("/", reportRoutes);
+
 // Important: Mount the attendance router at /api to match frontend expectations
 const attendanceRoutes = require("./routes/attendance_router");
 app.use("/employees", attendanceRoutes);
 
+// Handle errors
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

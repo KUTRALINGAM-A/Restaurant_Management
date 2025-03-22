@@ -12,8 +12,9 @@ import Delete from "./billing/deleteitem";
 import Edit from "./billing/edititem";
 import Newbill from "./new_bills/new_one";
 import Attendance from "./attendance/attendance_home";
-import Mark_attendance from "./attendance/mark_attendance";
-import View_attendance from "./attendance/view_attendance"
+import MarkAttendance from "./attendance/mark_attendance";
+import ViewAttendance from "./attendance/view_attendance"
+import BillReport from "./reports/bill_report"
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -41,8 +42,9 @@ const App = () => {
         <Route path="/billing/edititem" element={<Edit />} />
         <Route path="/new_bills/new_one" element={<Newbill />} />
         <Route path="/attendance/attendance_home" element={<Attendance />} />
-        <Route path="/attendance/mark_attendance" element={<Mark_attendance />}/>
-        <Route path="/attendance/view_attendance" element={<View_attendance />}/>
+        <Route path="/attendance/mark_attendance" element={<MarkAttendance />}/>
+        <Route path="/attendance/view_attendance" element={<ViewAttendance />}/>
+        <Route path="/reports/bill_report2" element={<BillReport />}/>
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 
