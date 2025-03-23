@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -35,10 +35,186 @@ const BillReports = () => {
   const [customerCount, setCustomerCount] = useState(0);
   const [salesTrend, setSalesTrend] = useState([]);
   const [comparativeData, setComparativeData] = useState([]);
-
+  const [dataLoadedTimestamp, setDataLoadedTimestamp] = useState(null);
+  
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
+  // Format date for input fields
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const fetchRestaurantLogo = async (restaurantId, token) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/users/restaurant-logo/${restaurantId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
+      });
+      
+      // Create a blob URL from the response data
+      const logoBlob = new Blob([response.data], { type: response.headers['content-type'] || 'image/png' });
+      const url = URL.createObjectURL(logoBlob);
+      setLogoUrl(url);
+    } catch (error) {
+      console.error("Error fetching logo:", error);
+      // Don't set any error state here, as logo is not critical
+    }
+  };
+
+  // Make fetchReportData a useCallback function so it can be used in the useEffect dependency array
+  const fetchReportData = useCallback(async (restaurantId, token, startDate, endDate, timespan) => {
+    setLoading(true);
+    setError(""); // Clear any previous errors
+    
+    try {
+      // Log API request details for debugging
+      console.log("Fetching report data with params:", {
+        restaurantId,
+        timespan,
+        startDate: formatDate(startDate),
+        endDate: formatDate(endDate)
+      });
+      
+      // Use consistent error handling for each API call
+      const fetchWithErrorHandling = async (url, params = {}) => {
+        try {
+          const response = await axios.get(url, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            params: {
+              startDate: formatDate(startDate),
+              endDate: formatDate(endDate),
+              ...params
+            }
+          });
+          
+          if (!response.data) throw new Error("Empty response data");
+          return response.data;
+        } catch (error) {
+          console.error(`Error fetching from ${url}:`, error.message);
+          throw error;
+        }
+      };
+      
+      // Fetch all data in parallel for better performance
+      const [
+        quantitiesData,
+        revenuesData,
+        categoryData,
+        popularData,
+        summaryData,
+        trendData,
+      ] = await Promise.all([
+        // Fixed the endpoint typo: bill_itemss → bill_items
+        fetchWithErrorHandling(`http://localhost:5000/bill_itemss/${restaurantId}`),
+        fetchWithErrorHandling(`http://localhost:5000/reports/item-revenues/${restaurantId}`),
+        fetchWithErrorHandling(`http://localhost:5000/reports/category-revenues/${restaurantId}`),
+        fetchWithErrorHandling(`http://localhost:5000/reports/popular-items/${restaurantId}`, {
+          limit: 5
+        }),
+        fetchWithErrorHandling(`http://localhost:5000/reports/summary/${restaurantId}`),
+        fetchWithErrorHandling(`http://localhost:5000/reports/sales-trend/${restaurantId}`, {
+          interval: timespan === "daily" ? "hour" : timespan === "weekly" ? "day" : "week"
+        }),
+      ]);
+      
+      // Fetch comparative data separately since it has different date parameters
+      const previousStartDate = new Date(startDate);
+      const previousEndDate = new Date(endDate);
+      const duration = previousEndDate - previousStartDate;
+      previousStartDate.setTime(previousStartDate.getTime() - duration);
+      previousEndDate.setTime(previousEndDate.getTime() - duration);
+      
+      const compareData = await fetchWithErrorHandling(`http://localhost:5000/reports/compare/${restaurantId}`, {
+        currentStartDate: formatDate(startDate),
+        currentEndDate: formatDate(endDate),
+        previousStartDate: formatDate(previousStartDate),
+        previousEndDate: formatDate(previousEndDate),
+        interval: timespan === "monthly" ? "week" : "day"
+      });
+      
+      // Process and validate data before updating state
+      const safeItemQuantities = Array.isArray(quantitiesData?.items) 
+        ? quantitiesData.items 
+        : [];
+        
+      const safeItemRevenues = Array.isArray(revenuesData?.items) 
+        ? revenuesData.items 
+        : [];
+        
+      const safeCategoryRevenues = Array.isArray(categoryData?.categories) 
+        ? categoryData.categories 
+        : [];
+        
+      const safePopularItems = Array.isArray(popularData?.items) 
+        ? popularData.items 
+        : [];
+       
+      const safeSalesTrend = Array.isArray(trendData?.trend) 
+        ? trendData.trend 
+        : [];
+        
+      const safeComparativeData = Array.isArray(compareData?.comparison) 
+        ? compareData.comparison 
+        : [];
+      
+      // Update state with validated data
+      setItemQuantities(safeItemQuantities);
+      setItemRevenues(safeItemRevenues);
+      setCategoryRevenues(safeCategoryRevenues);
+      setPopularItems(safePopularItems);
+      setSalesTrend(safeSalesTrend);
+      setComparativeData(safeComparativeData);
+      
+      // Check if there's actual data for the charts
+      if (safeItemQuantities.length === 0 && safeItemRevenues.length === 0) {
+        setError("No sales data found for the selected period");
+      }
+      
+      // Process category performance data if available
+      if (safeCategoryRevenues.length > 0) {
+        const highestCategory = safeCategoryRevenues.reduce((prev, current) => 
+          (prev.value > current.value) ? prev : current);
+          
+        const lowestCategory = safeCategoryRevenues.reduce((prev, current) => 
+          (prev.value < current.value) ? prev : current);
+          
+        setPerformingCategories({
+          highest: { name: highestCategory.name, revenue: highestCategory.value },
+          lowest: { name: lowestCategory.name, revenue: lowestCategory.value }
+        });
+      }
+      
+      // Set summary data with safe defaults
+      const summary = summaryData || {};
+      setTotalRevenue(summary.totalRevenue || 0);
+      setTotalItemsSold(summary.totalItemsSold || 0);
+      setAverageOrderValue(summary.averageOrderValue || 0);
+      setCustomerCount(summary.customerCount || 0);
+      
+      // Record when data was last loaded
+      setDataLoadedTimestamp(new Date());
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+      setError("Failed to load report data. Please check server connection and try again.");
+      setLoading(false);
+      
+      // Set empty data rather than keeping stale data
+      setItemQuantities([]);
+      setItemRevenues([]);
+      setCategoryRevenues([]);
+      setPopularItems([]);
+      setSalesTrend([]);
+      setComparativeData([]);
+    }
+  }, []);
+
+  // Main initialization effect
   useEffect(() => {
     try {
       // Check for token
@@ -79,164 +255,37 @@ const BillReports = () => {
         fetchReportData(restaurantId, token, start, end, "monthly");
       }
     } catch (error) {
-      setError("Error loading reports");
+      console.error("Initialization error:", error);
+      setError("Error loading reports. Please refresh and try again.");
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, fetchReportData]);
 
-  // Format date for input fields
-  const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const fetchRestaurantLogo = async (restaurantId, token) => {
-    try {
-      const response = await axios.get(`http://localhost:5000/users/restaurant-logo/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        responseType: 'blob'
-      });
+  // Set up periodic refresh (every 5 minutes)
+  useEffect(() => {
+    const refreshInterval = 5 * 60 * 1000; // 5 minutes
+    
+    const refreshData = () => {
+      const token = localStorage.getItem("token");
+      const restaurantId = localStorage.getItem("restaurantId");
       
-      // Create a blob URL from the response data
-      const logoBlob = new Blob([response.data], { type: response.headers['content-type'] || 'image/png' });
-      const url = URL.createObjectURL(logoBlob);
-      setLogoUrl(url);
-    } catch (error) {
-      console.error("Error fetching logo:", error);
-    }
-  };
-
-  const fetchReportData = async (restaurantId, token, startDate, endDate, timespan) => {
-    setLoading(true);
-    try {
-      // Fetch itemQuantities - count of items sold grouped by item
-      const quantitiesResponse = await axios.get(`http://localhost:5000/bill_itemss/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        }
-      });
-      
-      // Fetch itemRevenues - revenue for each item
-      const revenuesResponse = await axios.get(`http://localhost:5000/reports/item-revenues/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        }
-      });
-      
-      // Fetch categoryRevenues - revenue grouped by category
-      const categoryResponse = await axios.get(`http://localhost:5000/reports/category-revenues/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        }
-      });
-      
-      // Fetch popular items - top selling items by quantity
-      const popularResponse = await axios.get(`http://localhost:5000/reports/popular-items/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate),
-          limit: 5
-        }
-      });
-      
-      // Fetch summary metrics
-      const summaryResponse = await axios.get(`http://localhost:5000/reports/summary/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        }
-      });
-      
-      // Fetch sales trend data
-      const trendResponse = await axios.get(`http://localhost:5000/reports/sales-trend/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate),
-          interval: timespan === "daily" ? "hour" : timespan === "weekly" ? "day" : "week"
-        }
-      });
-      
-      // Fetch comparative data (current vs previous period)
-      const previousStartDate = new Date(startDate);
-      const previousEndDate = new Date(endDate);
-      const duration = previousEndDate - previousStartDate;
-      previousStartDate.setTime(previousStartDate.getTime() - duration);
-      previousEndDate.setTime(previousEndDate.getTime() - duration);
-      
-      const compareResponse = await axios.get(`http://localhost:5000/reports/compare/${restaurantId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        params: {
-          currentStartDate: formatDate(startDate),
-          currentEndDate: formatDate(endDate),
-          previousStartDate: formatDate(previousStartDate),
-          previousEndDate: formatDate(previousEndDate),
-          interval: timespan === "monthly" ? "week" : "day"
-        }
-      });
-      
-      // Process and set data from responses
-      setItemQuantities(quantitiesResponse.data.items || []);
-      setItemRevenues(revenuesResponse.data.items || []);
-      setCategoryRevenues(categoryResponse.data.categories || []);
-      setPopularItems(popularResponse.data.items || []);
-      
-      const categories = categoryResponse.data.categories || [];
-      if (categories.length > 0) {
-        // Find highest and lowest performing categories
-        const highestCategory = categories.reduce((prev, current) => 
-          (prev.value > current.value) ? prev : current);
-          
-        const lowestCategory = categories.reduce((prev, current) => 
-          (prev.value < current.value) ? prev : current);
-          
-        setPerformingCategories({
-          highest: { name: highestCategory.name, revenue: highestCategory.value },
-          lowest: { name: lowestCategory.name, revenue: lowestCategory.value }
-        });
+      if (token && restaurantId && startDate && endDate) {
+        console.log("Performing scheduled data refresh");
+        fetchReportData(
+          restaurantId, 
+          token, 
+          new Date(startDate), 
+          new Date(endDate), 
+          timeSpan
+        );
       }
-      
-      // Set summary data
-      const summary = summaryResponse.data;
-      setTotalRevenue(summary.totalRevenue || 0);
-      setTotalItemsSold(summary.totalItemsSold || 0);
-      setAverageOrderValue(summary.averageOrderValue || 0);
-      setCustomerCount(summary.customerCount || 0);
-      
-      // Set trend and comparative data
-      setSalesTrend(trendResponse.data.trend || []);
-      setComparativeData(compareResponse.data.comparison || []);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError("Error fetching report data");
-      setLoading(false);
-    }
-  };
+    };
+    
+    const intervalId = setInterval(refreshData, refreshInterval);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [fetchReportData, startDate, endDate, timeSpan]);
 
   const handleDateRangeChange = () => {
     const restaurantId = localStorage.getItem("restaurantId");
@@ -245,7 +294,16 @@ const BillReports = () => {
     if (startDate && endDate && restaurantId && token) {
       const start = new Date(startDate);
       const end = new Date(endDate);
+      
+      // Validate date range
+      if (start > end) {
+        setError("Start date cannot be after end date");
+        return;
+      }
+      
       fetchReportData(restaurantId, token, start, end, timeSpan);
+    } else {
+      setError("Please select valid date range");
     }
   };
 
@@ -288,6 +346,20 @@ const BillReports = () => {
     localStorage.clear();
     navigate("/");
   };
+  
+  // Helper function to prepare chart data
+  const prepareChartData = (data, keyName, valueName, limit = 6) => {
+    if (!Array.isArray(data) || data.length === 0) return [];
+    
+    // Create a copy to avoid modifying original data
+    return [...data]
+      .sort((a, b) => b[valueName] - a[valueName])
+      .slice(0, limit)
+      .map(item => ({
+        ...item,
+        [valueName]: Number(item[valueName]) // Ensure values are numbers
+      }));
+  };
 
   if (loading) {
     return (
@@ -323,6 +395,10 @@ const BillReports = () => {
       </div>
     );
   }
+
+  // Prepare data for charts to avoid processing in render
+  const topItemsByRevenue = prepareChartData(itemRevenues, "name", "revenue");
+  const topItemsByQuantity = prepareChartData(itemQuantities, "name", "quantity");
 
   return (
     <div style={{
@@ -493,6 +569,11 @@ const BillReports = () => {
               margin: "0"
             }}>
               Analyze your restaurant's performance and identify growth opportunities
+              {dataLoadedTimestamp && (
+                <span style={{ marginLeft: "10px", fontSize: "12px" }}>
+                  (Last updated: {dataLoadedTimestamp.toLocaleTimeString()})
+                </span>
+              )}
             </p>
           </div>
           
@@ -656,8 +737,37 @@ const BillReports = () => {
           ))}
         </div>
         
-        {/* Overview Tab Content */}
-        {activeTab === "overview" && (
+        {/* If no data is available, show a message */}
+        {itemQuantities.length === 0 && itemRevenues.length === 0 && !loading && (
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "8px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+            padding: "40px 20px",
+            textAlign: "center"
+          }}>
+            <p style={{ fontSize: "18px", color: "#6c757d", marginBottom: "15px" }}>
+              No data available for the selected time period
+            </p>
+            <button
+              onClick={() => handleTimeSpanChange("monthly")}
+              style={{
+                backgroundColor: "#0d6efd",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                padding: "8px 16px",
+                cursor: "pointer",
+                fontSize: "14px"
+              }}
+            >
+              Reset to Monthly View
+            </button>
+          </div>
+        )}
+        
+        {/* Overview Tab Content - Only display if we have data */}
+        {activeTab === "overview" && (itemQuantities.length > 0 || itemRevenues.length > 0) && (
           <>
             {/* Key Metrics */}
             <div style={{
@@ -727,61 +837,35 @@ const BillReports = () => {
                   Category Revenue
                 </h3>
                 
-                <div style={{ height: "300px" }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryRevenues}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {categoryRevenues.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: "20px",
-                  padding: "15px",
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: "6px"
-                }}>
-                  <div>
-                    <p style={{ margin: "0", fontSize: "14px", color: "#6c757d" }}>
-                      Highest Performing
-                    </p>
-                    <p style={{ margin: "5px 0 0 0", fontWeight: "600", color: "#198754" }}>
-                      {performingCategories.highest.name}
-                      <span style={{ marginLeft: "5px", fontSize: "14px" }}>
-                        (₹{performingCategories.highest.revenue.toLocaleString()})
-                      </span>
-                    </p>
+                {categoryRevenues.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryRevenues}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {categoryRevenues.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => `₹${value.toLocaleString()}`}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ margin: "0", fontSize: "14px", color: "#6c757d" }}>
-                      Lowest Performing
-                    </p>
-                    <p style={{ margin: "5px 0 0 0", fontWeight: "600", color: "#dc3545" }}>
-                      {performingCategories.lowest.name}
-                      <span style={{ marginLeft: "5px", fontSize: "14px" }}>
-                        (₹{performingCategories.lowest.revenue.toLocaleString()})
-                      </span>
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
+                )}
               </div>
               
               <div style={{
@@ -798,70 +882,42 @@ const BillReports = () => {
                   marginTop: "0",
                   marginBottom: "20px"
                 }}>
-                  Popular Orders
+                  Sales Trend
                 </h3>
                 
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px"
-                }}>
-                  {popularItems.map((item, index) => (
-                    <div 
-                      key={index}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "12px 15px",
-                        backgroundColor: index % 2 === 0 ? "#f8f9fa" : "white",
-                        borderRadius: "6px"
-                      }}
-                    >
-                      <div style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "50%",
-                        backgroundColor: COLORS[index % COLORS.length] + "20",
-                        color: COLORS[index % COLORS.length],
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                        marginRight: "15px"
-                      }}>
-                        {index + 1}
-                      </div>
-                      
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: "0", fontWeight: "500" }}>{item.name}</p>
-                        <p style={{ margin: "3px 0 0 0", fontSize: "14px", color: "#6c757d" }}>
-                          {item.quantity} units sold
-                        </p>
-                      </div>
-                      
-                      <div style={{
-                        backgroundColor: "#0d6efd10",
-                        color: "#0d6efd",
-                        padding: "6px 12px",
-                        borderRadius: "20px",
-                        fontSize: "14px",
-                        fontWeight: "500"
-                      }}>
-                        {item.percentage}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {salesTrend.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={salesTrend}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="period" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value) => `₹${value.toLocaleString()}`}
+                        />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="#0d6efd" 
+                          name="Revenue" 
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p style={{ color: "#6c757d", textAlign: "center" }}>No trend data available</p>
+                )}
               </div>
             </div>
             
-            {/* Item Sales and Revenue */}
+            {/* Top Performing Items */}
             <div style={{
               backgroundColor: "white",
               borderRadius: "8px",
               boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
               padding: "20px",
+              marginTop: "10%",
               marginBottom: "25px"
             }}>
               <h3 style={{
@@ -871,183 +927,363 @@ const BillReports = () => {
                 marginTop: "0",
                 marginBottom: "20px"
               }}>
-                Top Items by Revenue
+                Top Selling Items
               </h3>
               
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={itemRevenues.sort((a, b) => b.revenue - a.revenue).slice(0, 6)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(value) => `₹${value / 1000}k`} />
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    <Bar dataKey="revenue" fill="#0d6efd" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {topItemsByQuantity.length > 0 ? (
+                <div style={{ height: "300px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topItemsByQuantity}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar 
+                        dataKey="quantity" 
+                        fill="#0d6efd" 
+                        name="Quantity Sold" 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p style={{ color: "#6c757d", textAlign: "center" }}>No item data available</p>
+              )}
             </div>
           </>
         )}
+     {activeTab === "items" && (
+  <>
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
+      gap: "25px",
+      marginBottom: "25px"
+    }}>
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px"
+      }}>
+        <h3 style={{
+          fontSize: "18px",
+          fontWeight: "600",
+          color: "#212529",
+          marginTop: "0",
+          marginBottom: "20px"
+        }}>
+          Top Items by Revenue
+        </h3>
         
-        {/* Items Tab Content */}
-        {activeTab === "items" && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
-            gap: "25px"
-          }}>
-            <div style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              padding: "20px",
-              marginBottom: "25px"
-            }}>
-              <h3 style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                color: "#212529",
-                marginTop: "0",
-                marginBottom: "20px"
-              }}>
-                Item Sales by Quantity
-              </h3>
-              
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={itemQuantities.sort((a, b) => b.quantity - a.quantity).slice(0, 6)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="quantity" fill="#198754" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            
-            <div style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              padding: "20px",
-              marginBottom: "25px"
-            }}>
-              <h3 style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                color: "#212529",
-                marginTop: "0",
-                marginBottom: "20px"
-              }}>
-                Top Items by Revenue
-              </h3>
-              
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={itemRevenues.sort((a, b) => b.revenue - a.revenue).slice(0, 6)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(value) => `₹${value / 1000}k`} />
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    <Bar dataKey="revenue" fill="#0d6efd" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+        {topItemsByRevenue.length > 0 ? (
+          <div style={{ height: "300px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topItemsByRevenue}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value) => value ? `₹${value.toLocaleString()}` : '₹0'}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="revenue" 
+                  fill="#198754" 
+                  name="Revenue" 
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        ) : (
+          <p style={{ color: "#6c757d", textAlign: "center" }}>No revenue data available</p>
         )}
+      </div>
+      
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px"
+      }}>
+        <h3 style={{
+          fontSize: "18px",
+          fontWeight: "600",
+          color: "#212529",
+          marginTop: "0",
+          marginBottom: "20px"
+        }}>
+          Top Items by Quantity
+        </h3>
         
-        {/* Categories Tab Content */}
-        {activeTab === "categories" && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
-            gap: "25px"
+        {topItemsByQuantity.length > 0 ? (
+          <div style={{ height: "300px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topItemsByQuantity}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="item_name" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value, name) => [value, "Quantity Sold"]}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="quantity" 
+                  fill="#0d6efd" 
+                  name="Quantity Sold" 
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p style={{ color: "#6c757d", textAlign: "center" }}>No quantity data available</p>
+        )}
+      </div>
+    </div>
+    
+    {/* Popular Items Table */}
+    <div style={{
+      backgroundColor: "white",
+      borderRadius: "8px",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+      padding: "20px",
+      marginBottom: "25px"
+    }}>
+      <h3 style={{
+        fontSize: "18px",
+        fontWeight: "600",
+        color: "#212529",
+        marginTop: "0",
+        marginBottom: "20px"
+      }}>
+        Most Popular Items
+      </h3>
+      
+      {popularItems.length > 0 ? (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{
+            width: "100%",
+            borderCollapse: "collapse"
           }}>
+            <thead>
+              <tr style={{
+                backgroundColor: "#f8f9fa",
+                borderBottom: "2px solid #dee2e6"
+              }}>
+                <th style={{ padding: "12px 15px", textAlign: "left" }}>Item Name</th>
+                <th style={{ padding: "12px 15px", textAlign: "right" }}>Quantity Sold</th>
+                <th style={{ padding: "12px 15px", textAlign: "right" }}>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {popularItems.map((item, index) => (
+                <tr key={index} style={{
+                  borderBottom: "1px solid #dee2e6"
+                }}>
+                  <td style={{ padding: "12px 15px" }}>{item.name}</td>
+                  <td style={{ padding: "12px 15px", textAlign: "right" }}>{item.quantity}</td>
+                  <td style={{ padding: "12px 15px", textAlign: "right" }}>
+                    ₹{item.value ? item.value.toLocaleString() : '0'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p style={{ color: "#6c757d", textAlign: "center" }}>No popular items data available</p>
+      )}
+    </div>
+  </>
+)}
+    {/* Categories Tab Content */}
+        {activeTab === "categories" && (
+          <>
             <div style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              padding: "20px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
+              gap: "25px",
               marginBottom: "25px"
             }}>
-              <h3 style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                color: "#212529",
-                marginTop: "0",
-                marginBottom: "20px"
+              <div style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                padding: "20px"
               }}>
-                Category Revenue
-              </h3>
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  color: "#212529",
+                  marginTop: "0",
+                  marginBottom: "20px"
+                }}>
+                  Category Performance
+                </h3>
+                
+                {categoryRevenues.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={categoryRevenues}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value) => `₹${value.toLocaleString()}`}
+                        />
+                        <Legend />
+                        <Bar 
+                          dataKey="value" 
+                          fill="#6f42c1" 
+                          name="Revenue" 
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
+                )}
+              </div>
               
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryRevenues}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {categoryRevenues.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                padding: "20px"
+              }}>
+                <h3 style={{
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  color: "#212529",
+                  marginTop: "0",
+                  marginBottom: "20px"
+                }}>
+                  Category Distribution
+                </h3>
+                
+                {categoryRevenues.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryRevenues}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {categoryRevenues.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => `₹${value.toLocaleString()}`}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
+                )}
               </div>
             </div>
             
+            {/* Category Performance Info */}
             <div style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              padding: "20px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gap: "25px",
               marginBottom: "25px"
             }}>
-              <h3 style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                color: "#212529",
-                marginTop: "0",
-                marginBottom: "20px"
+              <div style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                padding: "20px",
+                borderLeft: "5px solid #198754"
               }}>
-                Category Comparison
-              </h3>
+                <h4 style={{
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#198754",
+                  marginTop: "0",
+                  marginBottom: "10px"
+                }}>
+                  Best Performing Category
+                </h4>
+                
+                {performingCategories.highest.name ? (
+                  <>
+                    <h3 style={{
+                      fontSize: "22px",
+                      fontWeight: "700",
+                      color: "#212529",
+                      margin: "0 0 5px 0"
+                    }}>
+                      {performingCategories.highest.name}
+                    </h3>
+                    <p style={{
+                      fontSize: "16px",
+                      fontWeight: "600",
+                      color: "#198754",
+                      margin: "0"
+                    }}>
+                      ₹{performingCategories.highest.revenue.toLocaleString()}
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ color: "#6c757d" }}>No data available</p>
+                )}
+              </div>
               
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={categoryRevenues}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(value) => `₹${value / 1000}k`} />
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    <Bar dataKey="value" fill="#6f42c1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                padding: "20px",
+                borderLeft: "5px solid #dc3545"
+              }}>
+                <h4 style={{
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#dc3545",
+                  marginTop: "0",
+                  marginBottom: "10px"
+                }}>
+                  Lowest Performing Category
+                </h4>
+                
+                {performingCategories.lowest.name ? (
+                  <>
+                    <h3 style={{
+                      fontSize: "22px",
+                      fontWeight: "700",
+                      color: "#212529",
+                      margin: "0 0 5px 0"
+                    }}>
+                      {performingCategories.lowest.name}
+                    </h3>
+                    <p style={{
+                      fontSize: "16px",
+                      fontWeight: "600",
+                      color: "#dc3545",
+                      margin: "0"
+                    }}>
+                      ₹{performingCategories.lowest.revenue.toLocaleString()}
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ color: "#6c757d" }}>No data available</p>
+                )}
               </div>
             </div>
-          </div>
+          </>
         )}
         
         {/* Trends Tab Content */}
@@ -1070,22 +1306,35 @@ const BillReports = () => {
                 Sales Trend
               </h3>
               
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={salesTrend}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" />
-                    <YAxis tickFormatter={(value) => `₹${value / 1000}k`} />
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    <Legend />
-                    <Line type="monotone" dataKey="revenue" stroke="#0d6efd" activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="orders" stroke="#dc3545" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {salesTrend.length > 0 ? (
+                <div style={{ height: "300px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={salesTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value) => `₹${value.toLocaleString()}`}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="#0d6efd" 
+                        name="Revenue" 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="orders" 
+                        stroke="#fd7e14" 
+                        name="Orders" 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p style={{ color: "#6c757d", textAlign: "center" }}>No trend data available</p>
+              )}
             </div>
             
             <div style={{
@@ -1102,30 +1351,41 @@ const BillReports = () => {
                 marginTop: "0",
                 marginBottom: "20px"
               }}>
-                Period Comparison
+                Comparative Analysis ({timeSpan})
               </h3>
               
-              <div style={{ height: "300px" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={comparativeData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" />
-                    <YAxis tickFormatter={(value) => `₹${value / 1000}k`} />
-                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-                    <Legend />
-                    <Bar dataKey="current" name="Current Period" fill="#0d6efd" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="previous" name="Previous Period" fill="#6c757d" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {comparativeData.length > 0 ? (
+                <div style={{ height: "300px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparativeData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value) => `₹${value.toLocaleString()}`}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="current" 
+                        fill="#0d6efd" 
+                        name="Current Period" 
+                      />
+                      <Bar 
+                        dataKey="previous" 
+                        fill="#6c757d" 
+                        name="Previous Period" 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p style={{ color: "#6c757d", textAlign: "center" }}>No comparative data available</p>
+              )}
             </div>
           </>
         )}
       </main>
-
+      
       {/* Footer */}
       <footer style={{
         backgroundColor: "#ffffff",
@@ -1149,71 +1409,60 @@ const BillReports = () => {
   );
 };
 
-// Helper component for metric cards
+// Metric Card Component
 const MetricCard = ({ title, value, icon, color, change, isPositive }) => {
   return (
     <div style={{
       backgroundColor: "white",
       borderRadius: "8px",
       boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-      padding: "20px",
-      display: "flex",
-      flexDirection: "column"
+      padding: "20px"
     }}>
       <div style={{
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: "15px"
+        alignItems: "center",
+        marginBottom: "10px"
       }}>
-        <div>
-          <p style={{
-            margin: "0",
-            fontSize: "14px",
-            color: "#6c757d"
-          }}>
-            {title}
-          </p>
-          <h4 style={{
-            margin: "8px 0 0 0",
-            fontSize: "24px",
-            fontWeight: "600",
-            color: "#212529"
-          }}>
-            {value}
-          </h4>
-        </div>
-        
-        <div style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "8px",
+        <p style={{
+          margin: "0",
+          fontSize: "14px",
+          color: "#6c757d"
+        }}>
+          {title}
+        </p>
+        <span style={{
+          fontSize: "24px",
           backgroundColor: `${color}20`,
           color: color,
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
           display: "flex",
-          justifyContent: "center",
           alignItems: "center",
-          fontSize: "20px"
+          justifyContent: "center"
         }}>
           {icon}
-        </div>
+        </span>
       </div>
       
-      <div style={{
-        backgroundColor: isPositive ? "#19875420" : "#dc354520",
-        color: isPositive ? "#198754" : "#dc3545",
-        alignSelf: "flex-start",
-        padding: "5px 10px",
-        borderRadius: "4px",
-        fontSize: "13px",
-        fontWeight: "500",
-        display: "flex",
-        alignItems: "center",
-        gap: "3px"
+      <h3 style={{
+        fontSize: "24px",
+        fontWeight: "700",
+        color: "#212529",
+        margin: "0 0 10px 0"
       }}>
-        <span>{isPositive ? "↑" : "↓"}</span>
-        {change} vs previous
-      </div>
+        {value}
+      </h3>
+      
+      <p style={{
+        margin: "0",
+        fontSize: "14px",
+        fontWeight: "500",
+        color: isPositive ? "#198754" : "#dc3545"
+      }}>
+        {change} vs. previous period
+      </p>
     </div>
   );
 };

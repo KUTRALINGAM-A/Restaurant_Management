@@ -54,7 +54,7 @@ router.get('/restaurant-logo/:restaurantId', verifyToken, async (req, res) => {
   }
 });
 
-// Fetch item quantities
+// Fetch item quantities - KEEP ORIGINAL ROUTE NAME
 router.get('/bill_itemss/:restaurantId', verifyToken, async (req, res) => {
   try {
     const { restaurantId } = req.params;
@@ -127,7 +127,7 @@ router.get('/reports/category-revenues/:restaurantId', verifyToken, async (req, 
   }
 });
 
-// Fetch popular items
+// Fetch popular items - KEEP ORIGINAL STRUCTURE
 router.get('/reports/popular-items/:restaurantId', verifyToken, async (req, res) => {
   try {
     const { restaurantId } = req.params;
@@ -144,10 +144,13 @@ router.get('/reports/popular-items/:restaurantId', verifyToken, async (req, res)
     const totalResult = await pool.query(totalQuantityQuery, [startDate, endDate]);
     const totalQuantity = parseInt(totalResult.rows[0].total) || 1; // Avoid division by zero
     
-    // Get popular items with percentage
+    // Get popular items with percentage and revenue
     const popularItemsQuery = `
-      SELECT bi.item_name as name, SUM(bi.quantity) as quantity,
-             (SUM(bi.quantity) * 100.0 / $3) as percentage
+      SELECT 
+        bi.item_name as name, 
+        SUM(bi.quantity) as quantity,
+        (SUM(bi.quantity) * 100.0 / $3) as percentage,
+        SUM(bi.subtotal) as value
       FROM "bill_items_${restaurantId}" bi
       JOIN "bills_${restaurantId}" b ON bi.bill_id = b.id
       WHERE b.bill_date BETWEEN $1 AND $2
@@ -197,11 +200,11 @@ router.get('/reports/summary/:restaurantId', verifyToken, async (req, res) => {
       WHERE b.bill_date BETWEEN $1 AND $2
     `;
     
-    // Customer count (unique customers based on phone)
+    // Customer count (count of unique bill IDs)
     const customerCountQuery = `
-      SELECT COUNT(DISTINCT customer_phone) as customer_count
+      SELECT COUNT(DISTINCT id) as customer_count
       FROM "bills_${restaurantId}"
-      WHERE bill_date BETWEEN $1 AND $2 AND customer_phone IS NOT NULL
+      WHERE bill_date BETWEEN $1 AND $2
     `;
     
     // Average order value
