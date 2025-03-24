@@ -26,6 +26,37 @@ router.post('/', auth, async (req, res) => {
     // Get employee_id from token or use a default if not available
     const employee_id = req.user ? req.user.id : 1; // Use default if not available
     
+    // Create bills table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bills_${restaurant_id} (
+        id SERIAL PRIMARY KEY,
+        restaurant_id INTEGER NOT NULL,
+        bill_number VARCHAR NOT NULL,
+        bill_date TIMESTAMP NOT NULL,
+        employee_id INTEGER NOT NULL,
+        employee_name VARCHAR NOT NULL,
+        customer_name VARCHAR,
+        customer_phone VARCHAR,
+        payment_method VARCHAR NOT NULL,
+        total_amount DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
+    // Create bill_items table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bill_items_${restaurant_id} (
+        id SERIAL PRIMARY KEY,
+        bill_id INTEGER NOT NULL,
+        item_id INTEGER NOT NULL,
+        item_name VARCHAR NOT NULL,
+        quantity INTEGER NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        subtotal DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
     // Use restaurant_id from request body for the table name
     const billResult = await client.query(
       `INSERT INTO bills_${restaurant_id}
@@ -82,6 +113,23 @@ router.get('/count/:restaurantId', auth, async (req, res) => {
       });
     }
     
+    // Check if the bills table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bills_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      // If table doesn't exist, return zero count
+      return res.json({
+        success: true,
+        count: 0
+      });
+    }
+    
     // Parse the date string to create date range for that day
     const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0);
@@ -115,6 +163,23 @@ router.get('/restaurant/:restaurantId', auth, async (req, res) => {
   try {
     const { restaurantId } = req.params;
     const { startDate, endDate, limit, offset } = req.query;
+    
+    // Check if the tables exist
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bills_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      // If table doesn't exist, return empty array
+      return res.json({
+        success: true,
+        bills: []
+      });
+    }
     
     let query = `
       SELECT b.*, COUNT(bi.id) as item_count
@@ -175,6 +240,22 @@ router.get('/:billId', auth, async (req, res) => {
       });
     }
     
+    // Check if the tables exist
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bills_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Bill not found - table does not exist"
+      });
+    }
+    
     // Get bill information
     const billResult = await pool.query(
       `SELECT * FROM bills_${restaurantId} WHERE id = $1`,
@@ -222,6 +303,22 @@ router.get('/date-range/:restaurantId', auth, async (req, res) => {
       });
     }
     
+    // Check if the tables exist
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bills_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        bills: []
+      });
+    }
+    
     const result = await pool.query(
       `SELECT b.*, 
               COUNT(bi.id) as items_count, 
@@ -259,6 +356,22 @@ router.get('/summary/daily/:restaurantId', auth, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Start date and end date are required"
+      });
+    }
+    
+    // Check if the bills table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bills_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        summary: []
       });
     }
     
@@ -308,6 +421,22 @@ router.get('/report/popular-items/:restaurantId', auth, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Start date and end date are required"
+      });
+    }
+    
+    // Check if the tables exist
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
+      )`,
+      [`bill_items_${restaurantId}`]
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        popular_items: []
       });
     }
     
