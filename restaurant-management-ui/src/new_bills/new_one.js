@@ -22,6 +22,7 @@ const BillingPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [printMode, setPrintMode] = useState(false);
   const [billDate, setBillDate] = useState(new Date());
+  const [showQRButton, setShowQRButton] = useState(false);
 
   useEffect(() => {
     try {
@@ -1146,33 +1147,67 @@ const BillingPage = () => {
                 marginTop: "15px"
               }}>
                 {/* Payment method - Hide during print */}
-                <div className={printMode ? "no-print" : ""}>
-                  <label style={{
-                    display: "block",
-                    marginBottom: "5px",
-                    fontSize: "14px",
-                    color: "#495057"
-                  }}>
-                    Payment Method
-                  </label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: "4px",
-                      border: "1px solid #ced4da",
-                      fontSize: "15px"
-                    }}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                
+             {/* Payment method - Hide during print */}
+<div className={printMode ? "no-print" : ""}>
+  <label style={{
+    display: "block",
+    marginBottom: "5px",
+    fontSize: "14px",
+    color: "#495057"
+  }}>
+    Payment Method
+  </label>
+  <select
+    value={paymentMethod}
+    onChange={(e) => {
+      const selectedMethod = e.target.value;
+      setPaymentMethod(selectedMethod);
+      setShowQRButton(selectedMethod === 'UPI');
+    }}
+    style={{
+      width: "100%",
+      padding: "8px 10px",
+      borderRadius: "4px",
+      border: "1px solid #ced4da",
+      fontSize: "15px"
+    }}
+  >
+    <option value="Cash">Cash</option>
+    <option value="Card">Card</option>
+    <option value="UPI">UPI</option>
+    <option value="Other">Other</option>
+  </select>
+</div>
+
+{/* UPI QR Button - Show only when UPI is selected */}
+{showQRButton && (
+  <button
+    onClick={() => navigate('/UPI_payment/QRcodeGenerator', {
+      state: {
+        totalAmount: totalAmount,
+        restaurantName: restaurantName,
+        billNumber: billNumber
+      }
+    })}
+    style={{
+      width: "100%",
+      backgroundColor: "#198754",
+      color: "white",
+      border: "none",
+      borderRadius: "4px",
+      padding: "10px",
+      cursor: "pointer",
+      fontSize: "15px",
+      fontWeight: "500",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: "8px"
+    }}
+  >
+    Generate UPI QR
+  </button>
+)}
                 {/* Total amount */}
                 <div style={{
                   display: "flex",
