@@ -64,7 +64,6 @@ const BillReports = () => {
     }
   };
 
-  // Make fetchReportData a useCallback function so it can be used in the useEffect dependency array
   const fetchReportData = useCallback(async (restaurantId, token, startDate, endDate, timespan) => {
     setLoading(true);
     setError(""); // Clear any previous errors
@@ -109,7 +108,6 @@ const BillReports = () => {
         summaryData,
         trendData,
       ] = await Promise.all([
-        // Fixed the endpoint typo: bill_itemss → bill_items
         fetchWithErrorHandling(`http://localhost:5000/bill_itemss/${restaurantId}`),
         fetchWithErrorHandling(`http://localhost:5000/reports/item-revenues/${restaurantId}`),
         fetchWithErrorHandling(`http://localhost:5000/reports/category-revenues/${restaurantId}`),
@@ -842,7 +840,10 @@ const BillReports = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={categoryRevenues}
+                          data={categoryRevenues.map(category => ({
+                            name: category.name, 
+                            value: Number(category.value)
+                          }))}
                           cx="50%"
                           cy="50%"
                           labelLine={true}
@@ -913,18 +914,20 @@ const BillReports = () => {
             
             {/* Top Performing Items */}
             <div style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              padding: "20px",
-              marginTop: "10%",
-              marginBottom: "25px"
-            }}>
+            backgroundColor: "white",
+            marginTop: "6%", // This will push the entire box down
+            borderRadius: "8px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+            padding: "20px",
+            marginBottom: "25px"
+}}>
+  {/* Rest of the code remains the same */}
+
               <h3 style={{
                 fontSize: "18px",
                 fontWeight: "600",
                 color: "#212529",
-                marginTop: "0",
+                paddingTop:"20px",
                 marginBottom: "20px"
               }}>
                 Top Selling Items
@@ -935,7 +938,7 @@ const BillReports = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={topItemsByQuantity}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
+                      <XAxis dataKey="item_name" />
                       <YAxis />
                       <Tooltip />
                       <Legend />
@@ -953,7 +956,9 @@ const BillReports = () => {
             </div>
           </>
         )}
-     {activeTab === "items" && (
+        
+        {/* Items Tab Content */}
+        {activeTab === "items" && (
   <>
     <div style={{
       display: "grid",
@@ -1097,7 +1102,7 @@ const BillReports = () => {
     </div>
   </>
 )}
-    {/* Categories Tab Content */}
+        {/* Categories Tab Content */}
         {activeTab === "categories" && (
           <>
             <div style={{
@@ -1167,7 +1172,11 @@ const BillReports = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={categoryRevenues}
+                          data={categoryRevenues.map(category => ({
+                            name: category.name, 
+                            value: Number(category.value)
+                          }))}
+
                           cx="50%"
                           cy="50%"
                           labelLine={true}
