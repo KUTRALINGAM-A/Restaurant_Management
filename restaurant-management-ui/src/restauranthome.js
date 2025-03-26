@@ -322,7 +322,7 @@ const RestaurantHome = () => {
                 icon="✓"
                 text="Mark Attendance"
                 color="#0a58ca"
-                onClick={() => console.log("Quick attendance clicked")}
+                onClick={() => navigate("/attendance/mark_attendance")}
               />
               
               <QuickActionButton

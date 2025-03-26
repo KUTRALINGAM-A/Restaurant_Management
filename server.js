@@ -45,6 +45,9 @@ app.use("/", reportRoutes);
 const attendanceRoutes = require("./routes/attendance_router");
 app.use("/employees", attendanceRoutes);
 
+// Import the combined router
+const billMenuRoutes = require('./routes/search_bill_router');
+app.use('/', billMenuRoutes);
 // Handle errors
 app.use((err, req, res, next) => {
   console.error(err.stack);

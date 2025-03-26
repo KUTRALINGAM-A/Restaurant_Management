@@ -620,6 +620,24 @@ const BillReports = () => {
             >
               <span style={{ fontSize: "18px" }}>↓</span> Export
             </button>
+
+            <button
+              onClick={() => navigate("/reports/bill_search_item")}
+              style={{
+                backgroundColor: "transparent",
+                color: "#6c757d",
+                border: "1px solid #ced4da",
+                borderRadius: "4px",
+                padding: "8px 16px",
+                cursor: "pointer",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+            >
+              Bill Details  <span style={{ fontSize: "18px" }}> → </span>
+            </button>
           </div>
         </div>
         
@@ -802,7 +820,7 @@ const BillReports = () => {
               />
               
               <MetricCard
-                title="Customer Count"
+                title="Customer/Bill Count"
                 value={customerCount.toLocaleString()}
                 icon="👥"
                 color="#6f42c1"

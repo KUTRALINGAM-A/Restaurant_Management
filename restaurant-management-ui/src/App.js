@@ -16,6 +16,7 @@ import MarkAttendance from "./attendance/mark_attendance";
 import ViewAttendance from "./attendance/view_attendance"
 import BillReport from "./reports/bill_report"
 import Generator from "./UPI_payment/QRcodeGenerator"
+import Search from "./reports/bill_search_item"
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -47,6 +48,7 @@ const App = () => {
         <Route path="/attendance/view_attendance" element={<ViewAttendance />}/>
         <Route path="/reports/bill_report" element={<BillReport />}/>
         <Route path="/UPI_payment/QRcodeGenerator" element={<Generator />}/>
+        <Route path="/reports/bill_search_item" element={<Search />}/>
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 
