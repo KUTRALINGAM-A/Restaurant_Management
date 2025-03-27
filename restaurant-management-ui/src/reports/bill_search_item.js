@@ -21,7 +21,7 @@ const BillItemLookup = () => {
 
   // Handle navigation back to dashboard
   const handleBackToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/restaurant-home');
   };
 
   useEffect(() => {
@@ -273,7 +273,10 @@ const BillItemLookup = () => {
 
   const renderLookupResults = () => {
     if (!lookupResults) return null;
-
+  
+    // Add a console log to inspect the actual structure of lookupResults
+    console.log("Lookup Results:", lookupResults);
+  
     return (
       <div style={{
         backgroundColor: "#ffffff",
@@ -293,8 +296,9 @@ const BillItemLookup = () => {
             ? `Bill #${billNumber} Details` 
             : `Bills for ${selectedItem}`}
         </h3>
-
+  
         {lookupType === "bill_to_items" ? (
+          // Existing bill to items rendering code
           <div>
             <div style={{
               display: "grid",
@@ -315,7 +319,7 @@ const BillItemLookup = () => {
                 </p>
               </div>
             </div>
-
+  
             <table style={{
               width: "100%",
               borderCollapse: "collapse",
@@ -363,6 +367,7 @@ const BillItemLookup = () => {
             </table>
           </div>
         ) : (
+          // Updated items to bill rendering code
           <table style={{
             width: "100%",
             borderCollapse: "collapse"
@@ -388,10 +393,11 @@ const BillItemLookup = () => {
                   padding: "12px",
                   textAlign: "right",
                   borderBottom: "1px solid #dee2e6"
-                }}>Total Amount</th>
+                }}>Subtotal</th>
               </tr>
             </thead>
             <tbody>
+              {/* Add type check and fallback */}
               {Array.isArray(lookupResults) ? (
                 lookupResults.map((bill, index) => (
                   <tr key={index}>
@@ -413,7 +419,7 @@ const BillItemLookup = () => {
                       padding: "12px",
                       textAlign: "right",
                       borderBottom: "1px solid #dee2e6"
-                    }}>₹{bill.total_amount}</td>
+                    }}>₹{bill.subtotal}</td>
                   </tr>
                 ))
               ) : (
@@ -429,7 +435,6 @@ const BillItemLookup = () => {
       </div>
     );
   };
-
   return (
     <div style={{
       display: "flex",

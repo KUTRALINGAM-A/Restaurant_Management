@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { User, LogOut } from 'lucide-react';
 
 const RestaurantHome = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const RestaurantHome = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [logoUrl, setLogoUrl] = useState(null);
+  const [showUserInfo, setShowUserInfo] = useState(false);
 
   useEffect(() => {
     try {
@@ -69,6 +71,10 @@ const RestaurantHome = () => {
     navigate("/");
   };
 
+  const handleUserInfo = () => {
+    setShowUserInfo(!showUserInfo);
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -120,6 +126,7 @@ const RestaurantHome = () => {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        position: "relative",
       }}>
         {/* Logo and Restaurant Name */}
         <div style={{
@@ -172,7 +179,7 @@ const RestaurantHome = () => {
           </h1>
         </div>
 
-        {/* User welcome and logout */}
+        {/* User welcome and action buttons */}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -196,6 +203,38 @@ const RestaurantHome = () => {
               {userName}
             </p>
           </div>
+          
+          {/* User Info Button */}
+          <button
+            onClick={handleUserInfo}
+            style={{
+              backgroundColor: "transparent",
+              color: "#007bff",
+              border: "1px solid #007bff",
+              borderRadius: "4px",
+              padding: "8px 16px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "500",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease"
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = "#007bff";
+              e.target.style.color = "white";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = "transparent";
+              e.target.style.color = "#007bff";
+            }}
+          >
+            <User size={16} />
+            Profile
+          </button>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
             style={{
@@ -207,6 +246,9 @@ const RestaurantHome = () => {
               cursor: "pointer",
               fontSize: "14px",
               fontWeight: "500",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
               transition: "all 0.2s ease"
             }}
             onMouseOver={(e) => {
@@ -218,9 +260,90 @@ const RestaurantHome = () => {
               e.target.style.color = "#dc3545";
             }}
           >
+            <LogOut size={16} />
             Logout
           </button>
         </div>
+
+        {/* User Info Dropdown */}
+        {showUserInfo && (
+          <div style={{
+            position: "absolute",
+            top: "100%",
+            right: "25px",
+            backgroundColor: "white",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+            marginTop: "10px",
+            borderRadius: "8px",
+            padding: "20px",
+            width: "250px",
+            zIndex: "10",
+            border: "1px solid #e9ecef"
+          }}>
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginBottom: "15px"
+            }}>
+              <div style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                backgroundColor: "#f8f9fa",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: "10px"
+              }}>
+                <User size={40} color="#6c757d" />
+              </div>
+              <h3 style={{
+                margin: "0",
+                fontSize: "18px",
+                fontWeight: "600",
+                color: "#212529"
+              }}>
+                {userName}
+              </h3>
+              <p style={{
+                margin: "5px 0 0",
+                fontSize: "14px",
+                color: "#6c757d"
+              }}>
+                of {restaurantName}
+              </p>
+            </div>
+            <div style={{
+              borderTop: "1px solid #e9ecef",
+              paddingTop: "15px"
+            }}>
+              <button 
+              onClick={() => navigate("/userinfo")}
+              style={{
+                width: "100%",
+                backgroundColor: "transparent",
+                border: "1px solid #28a745",
+                color: "#28a745",
+                padding: "10px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+                
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = "#28a745";
+                e.target.style.color = "white";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = "transparent";
+                e.target.style.color = "#28a745";
+              }}>
+                View Profile
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Error notification */}
@@ -497,26 +620,27 @@ const QuickActionButton = ({ icon, text, color, onClick }) => {
           iconRef.current.style.color = color;
         }
       }}
-    ><span 
-    ref={iconRef}
-    style={{
-      width: "28px",
-      height: "28px",
-      borderRadius: "50%",
-      backgroundColor: `${color}20`,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      color: color,
-      fontSize: "16px",
-      transition: "all 0.2s ease"
-    }}
-  >
-    {icon}
-  </span>
-  {text}
-</button>
-);
+    >
+      <span 
+        ref={iconRef}
+        style={{
+          width: "28px",
+          height: "28px",
+          borderRadius: "50%",
+          backgroundColor: `${color}20`,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          color: color,
+          fontSize: "16px",
+          transition: "all 0.2s ease"
+        }}
+      >
+        {icon}
+      </span>
+      {text}
+    </button>
+  );
 };
 
 export default RestaurantHome;
