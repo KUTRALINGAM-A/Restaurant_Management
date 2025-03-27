@@ -9,11 +9,26 @@ const port = process.env.PORT || 5000;
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  // Optional connection settings for more robust connection
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5000'], // Adjust as needed
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Test route
 app.get("/", (req, res) => {
@@ -30,33 +45,53 @@ app.use('/restaurants', restaurantRoutes);
 const revenueRoutes = require("./routes/revenue");
 app.use("/revenue", revenueRoutes);
 
-// Add menu routes - this will handle the dynamic table names
 const menuRoutes = require("./routes/MenuRouter");
 app.use("/", menuRoutes);
 
 const billRoutes = require("./routes/BillRouter");
 app.use("/bills", billRoutes);
 
-// Reports and analytics routes
 const reportRoutes = require("./routes/bill_report_router");
 app.use("/", reportRoutes);
 
-// Important: Mount the attendance router at /api to match frontend expectations
 const attendanceRoutes = require("./routes/attendance_router");
 app.use("/employees", attendanceRoutes);
 
-// Import the combined router
 const billMenuRoutes = require('./routes/search_bill_router');
 app.use('/', billMenuRoutes);
-// Handle errors
+
+const userinfoRoutes = require("./routes/userinfo_router");
+app.use("/", userinfoRoutes);
+
+// Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Something broke!');
+  res.status(500).json({
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  });
 });
 
-app.listen(port, () => {
+// Handle 404 routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Start server
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
-// Export pool to use in other files
-module.exports = pool;
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    pool.end(() => {
+      console.log('Database pool closed');
+      process.exit(0);
+    });
+  });
+});
+
+module.exports = { app, pool };
