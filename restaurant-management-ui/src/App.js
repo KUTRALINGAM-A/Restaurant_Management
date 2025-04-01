@@ -13,11 +13,12 @@ import Edit from "./billing/edititem";
 import Newbill from "./new_bills/new_one";
 import Attendance from "./attendance/attendance_home";
 import MarkAttendance from "./attendance/mark_attendance";
-import ViewAttendance from "./attendance/view_attendance"
-import BillReport from "./reports/bill_report"
-import Generator from "./UPI_payment/QRcodeGenerator"
-import Search from "./reports/bill_search_item"
-import Userinfo from "./userinfo"
+import ViewAttendance from "./attendance/view_attendance";
+import BillReport from "./reports/bill_report";
+import Generator from "./UPI_payment/QRcodeGenerator";
+import Search from "./reports/bill_search_item";
+import Userinfo from "./userinfo";
+import ResetPassword from "./reset_password"
 // Protected Route Component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -51,6 +52,7 @@ const App = () => {
         <Route path="/UPI_payment/QRcodeGenerator" element={<Generator />}/>
         <Route path="/reports/bill_search_item" element={<Search />}/>
         <Route path="/userinfo" element={<Userinfo />}/>
+        <Route path="/reset_password" element={<ResetPassword />}/>
         {/* Protected Restaurant Home Route */}
         <Route 
           path="/restaurant-home" 

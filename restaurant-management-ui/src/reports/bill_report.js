@@ -144,10 +144,10 @@ const BillReports = () => {
         ? revenuesData.items 
         : [];
         
-      const safeCategoryRevenues = Array.isArray(categoryData?.categories) 
-        ? categoryData.categories 
-        : [];
-        
+        const safeCategoryRevenues = Array.isArray(categoryData?.categories)
+  ? categoryData.categories
+  : [];
+      
       const safePopularItems = Array.isArray(popularData?.items) 
         ? popularData.items 
         : [];
@@ -174,18 +174,27 @@ const BillReports = () => {
       }
       
       // Process category performance data if available
-      if (safeCategoryRevenues.length > 0) {
-        const highestCategory = safeCategoryRevenues.reduce((prev, current) => 
-          (prev.value > current.value) ? prev : current);
-          
-        const lowestCategory = safeCategoryRevenues.reduce((prev, current) => 
-          (prev.value < current.value) ? prev : current);
-          
-        setPerformingCategories({
-          highest: { name: highestCategory.name, revenue: highestCategory.value },
-          lowest: { name: lowestCategory.name, revenue: lowestCategory.value }
-        });
-      }
+      const highestCategory = safeCategoryRevenues.reduce((max, category) => 
+        (Number(category.value) > Number(max.value) ? category : max), 
+        { name: '', value: -Infinity }
+      );
+      
+      const lowestCategory = safeCategoryRevenues.reduce((min, category) => 
+        (Number(category.value) < Number(min.value) ? category : min), 
+        { name: '', value: Infinity }
+      );
+      
+      setPerformingCategories({
+        highest: { 
+          name: highestCategory.name, 
+          revenue: highestCategory.value 
+        },
+        lowest: { 
+          name: lowestCategory.name, 
+          revenue: lowestCategory.value 
+        }
+      });
+      
       
       // Set summary data with safe defaults
       const summary = summaryData || {};
@@ -1122,197 +1131,205 @@ const BillReports = () => {
 )}
         {/* Categories Tab Content */}
         {activeTab === "categories" && (
-          <>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
-              gap: "25px",
-              marginBottom: "25px"
-            }}>
-              <div style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                padding: "20px"
-              }}>
-                <h3 style={{
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: "#212529",
-                  marginTop: "0",
-                  marginBottom: "20px"
-                }}>
-                  Category Performance
-                </h3>
-                
-                {categoryRevenues.length > 0 ? (
-                  <div style={{ height: "300px" }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={categoryRevenues}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => `₹${value.toLocaleString()}`}
-                        />
-                        <Legend />
-                        <Bar 
-                          dataKey="value" 
-                          fill="#6f42c1" 
-                          name="Revenue" 
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
-                )}
-              </div>
-              
-              <div style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                padding: "20px"
-              }}>
-                <h3 style={{
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: "#212529",
-                  marginTop: "0",
-                  marginBottom: "20px"
-                }}>
-                  Category Distribution
-                </h3>
-                
-                {categoryRevenues.length > 0 ? (
-                  <div style={{ height: "300px" }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryRevenues.map(category => ({
-                            name: category.name, 
-                            value: Number(category.value)
-                          }))}
-
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {categoryRevenues.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value) => `₹${value.toLocaleString()}`}
-                        />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
-                )}
-              </div>
-            </div>
-            
-            {/* Category Performance Info */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "25px",
-              marginBottom: "25px"
-            }}>
-              <div style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                padding: "20px",
-                borderLeft: "5px solid #198754"
-              }}>
-                <h4 style={{
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  color: "#198754",
-                  marginTop: "0",
-                  marginBottom: "10px"
-                }}>
-                  Best Performing Category
-                </h4>
-                
-                {performingCategories.highest.name ? (
-                  <>
-                    <h3 style={{
-                      fontSize: "22px",
-                      fontWeight: "700",
-                      color: "#212529",
-                      margin: "0 0 5px 0"
-                    }}>
-                      {performingCategories.highest.name}
-                    </h3>
-                    <p style={{
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      color: "#198754",
-                      margin: "0"
-                    }}>
-                      ₹{performingCategories.highest.revenue.toLocaleString()}
-                    </p>
-                  </>
-                ) : (
-                  <p style={{ color: "#6c757d" }}>No data available</p>
-                )}
-              </div>
-              
-              <div style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                padding: "20px",
-                borderLeft: "5px solid #dc3545"
-              }}>
-                <h4 style={{
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  color: "#dc3545",
-                  marginTop: "0",
-                  marginBottom: "10px"
-                }}>
-                  Lowest Performing Category
-                </h4>
-                
-                {performingCategories.lowest.name ? (
-                  <>
-                    <h3 style={{
-                      fontSize: "22px",
-                      fontWeight: "700",
-                      color: "#212529",
-                      margin: "0 0 5px 0"
-                    }}>
-                      {performingCategories.lowest.name}
-                    </h3>
-                    <p style={{
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      color: "#dc3545",
-                      margin: "0"
-                    }}>
-                      ₹{performingCategories.lowest.revenue.toLocaleString()}
-                    </p>
-                  </>
-                ) : (
-                  <p style={{ color: "#6c757d" }}>No data available</p>
-                )}
-              </div>
-            </div>
-          </>
-        )}
+  <>
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))",
+      gap: "25px",
+      marginBottom: "25px"
+    }}>
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px"
+      }}>
+        <h3 style={{
+          fontSize: "18px",
+          fontWeight: "600",
+          color: "#212529",
+          marginTop: "0",
+          marginBottom: "20px"
+        }}>
+          Category Performance
+        </h3>
         
+        {categoryRevenues.length > 0 ? (
+          <div style={{ height: "300px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={categoryRevenues.map(category => ({
+                  name: category.name,
+                  value: Number(category.value || 0)
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis 
+                  domain={[0, 'dataMax']} 
+                  tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Tooltip 
+                  formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Revenue']}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="value" 
+                  fill="#6f42c1" 
+                  name="Revenue" 
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
+        )}
+      </div>
+      
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px"
+      }}>
+        <h3 style={{
+          fontSize: "18px",
+          fontWeight: "600",
+          color: "#212529",
+          marginTop: "0",
+          marginBottom: "20px"
+        }}>
+          Category Distribution
+        </h3>
+        
+        {categoryRevenues.length > 0 ? (
+          <div style={{ height: "300px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryRevenues.map(category => ({
+                    name: category.name, 
+                    value: Number(category.value || 0)
+                  }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  nameKey="name"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {categoryRevenues.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => `₹${Number(value).toLocaleString()}`}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p style={{ color: "#6c757d", textAlign: "center" }}>No category data available</p>
+        )}
+      </div>
+    </div>
+    
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+      gap: "25px",
+      marginBottom: "25px"
+    }}>
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px",
+        borderLeft: "5px solid #198754"
+      }}>
+        <h4 style={{
+          fontSize: "16px",
+          fontWeight: "600",
+          color: "#198754",
+          marginTop: "0",
+          marginBottom: "10px"
+        }}>
+          Best Performing Category
+        </h4>
+        
+        {performingCategories.highest.name ? (
+          <>
+            <h3 style={{
+              fontSize: "22px",
+              fontWeight: "700",
+              color: "#212529",
+              margin: "0 0 5px 0"
+            }}>
+              {performingCategories.highest.name}
+            </h3>
+            <p style={{
+              fontSize: "16px",
+              fontWeight: "600",
+              color: "#198754",
+              margin: "0"
+            }}>
+              ₹{performingCategories.highest.revenue.toLocaleString()}
+            </p>
+          </>
+        ) : (
+          <p style={{ color: "#6c757d" }}>No data available</p>
+        )}
+      </div>
+      
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        padding: "20px",
+        borderLeft: "5px solid #dc3545"
+      }}>
+        <h4 style={{
+          fontSize: "16px",
+          fontWeight: "600",
+          color: "#dc3545",
+          marginTop: "0",
+          marginBottom: "10px"
+        }}>
+          Lowest Performing Category
+        </h4>
+        
+        {performingCategories.lowest.name ? (
+          <>
+            <h3 style={{
+              fontSize: "22px",
+              fontWeight: "700",
+              color: "#212529",
+              margin: "0 0 5px 0"
+            }}>
+              {performingCategories.lowest.name}
+            </h3>
+            <p style={{
+              fontSize: "16px",
+              fontWeight: "600",
+              color: "#dc3545",
+              margin: "0"
+            }}>
+              ₹{performingCategories.lowest.revenue.toLocaleString()}
+            </p>
+          </>
+        ) : (
+          <p style={{ color: "#6c757d" }}>No data available</p>
+        )}
+      </div>
+    </div>
+  </>
+)}
         {/* Trends Tab Content */}
         {activeTab === "trends" && (
           <>

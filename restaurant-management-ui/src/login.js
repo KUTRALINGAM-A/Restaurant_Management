@@ -312,7 +312,7 @@ const UserLogin = () => {
                 </label>
               </div>
               <Link
-                to="/forgot-password"
+                to="/reset_password"
                 style={{
                   fontSize: "14px",
                   color: "#0a58ca",

@@ -15,6 +15,10 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
+// Make pool available globally as module.exports.pool
+// This makes it easier to import in route files
+module.exports.pool = pool;
+
 // Middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5000'], // Adjust as needed
@@ -38,6 +42,10 @@ app.get("/", (req, res) => {
 // Import and use routes
 const userRoutes = require("./routes/users");
 app.use("/users", userRoutes);
+
+// Important: Mount the password reset routes at /api to match frontend API_BASE_URL
+const passwordResetRoutes = require("./routes/reset_password_router");
+app.use("/", passwordResetRoutes);
 
 const restaurantRoutes = require("./routes/RestaurantRoute");
 app.use('/restaurants', restaurantRoutes);
@@ -74,7 +82,10 @@ app.use((err, req, res, next) => {
 
 // Handle 404 routes
 app.use((req, res, next) => {
-  res.status(404).json({ message: 'Route not found' });
+  res.status(404).json({ 
+    message: 'Route not found',
+    path: req.originalUrl
+  });
 });
 
 // Start server
@@ -94,4 +105,4 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { app, pool };
+module.exports = { app };
