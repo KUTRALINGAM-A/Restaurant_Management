@@ -1,354 +1,436 @@
-const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const pool = require("../db"); // PostgreSQL connection
-require("dotenv").config();
+const express = require('express');
 const router = express.Router();
-// Add this to the top with other imports - needed for Firebase authentication
-const admin = require("firebase-admin");
-// Initialize Firebase Admin if not already done
-// You'll need to download your service account JSON from Firebase console
-// IMPORTANT: In production, don't hardcode this path. Use environment variables.
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      "type": "service_account",
-  "project_id": "flamingoes-restaurant-manager",
-  "private_key_id": "7d9577ef8c99738500ba618dd6039c4dd039a566",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC/Z6Aays8dKmfk\nEhd2it/rn1lsu57px3cuaEIjDuYmnhYZjj8VeVYy+OGI+K4RyqERokExxLn6wvW9\neaIaCLx6TWGWbbIu+tVLzSlJzBSVIyG88mkpdS1J5PJnpl2QRAOAxwTIIYoQtQ/u\n0f1KVkKt0lOeLxoz2RerPW036meIvKUeN7cgDLQfJ4Vo/HP/l81YAkMoXnGzHVOa\nzbaFHl51qoL/3YJkVFocXSoCURSvbJJVNZKbIiSemjcD6o8XF2cTzPFiuiKHh4gg\niQWuvFQmgAYiNHhXwrKHeGh/rfFbtmjyEYXF7Cr7isCWFMFSozIXR40noMX6E+16\niVPXObEBAgMBAAECggEAAzIEyCQfoT7rShe+0+6AmEuD1ivE40xxrtD0KoERElvF\n4BPx9XbqzshwSqjM9L4U9bLncyAm8xepiGONJosdZM6BTqrl9FPUSlySXMmIt6He\nnWvPzQhIQvlAAYv5xUx++uAXsj5t5bzoF0mvkiI7h1eODtBLF/3lUvYGqnRocxQ2\nJM3WIRvfkDJTLvrewrcpqD2vyfp9rjLCsB+VxorMEdhmu7UoTW+Phwb+WyQoMtFm\nOu3Ilgh5SFADhE1oX0OG2gvzERdCxj3aZDhyw4k1oDUwkpL7M4GrtMLtjJd/rjJw\n4yMJO+LUyDsDK3NNsJB7qUOgE9GJkVCy/GIVDZW5GQKBgQDvVvSM/4PQR+L4hpVW\nym7xSZ0kDE9YrDZ5L5lfk7Ll49TU2ON+Y0CdkJNwsH/gX0QMqJ8VmzL9V47gjBIT\nXrJ6qOQSMFMAytfQAGYnGampN7Y23WI08xb0+LIR67GrjahyMcqVzocELTIn3eFd\nhj5i+yHEj4ZwWJVcaJEcXnTLtQKBgQDMunfZfHc7GZTDnJfj0K6iNwcHvjCjFDqr\nOnLoH2dZoJUVMinE4JvmPpeh19DYFUnybCtYJMW8I+aqdsl3s9TzWYZEwlegfBPV\nH0Lbxzi438NVO20SWnnOQattgPOTNQxsWxMGBpa3aoHS/WVD9gCQpidLcz9IlfGF\nm/TWwE2XnQKBgQCxEd4fqrJ0l5qeT8OQ0He/37x4fPr/GXm7srF/+p/yYNqHFmdI\njFmzuNC8IHibISARVXdM3uOcdvjnu/lrhzX4dZc2tbXS8j80TfdFmkDhRqxybttH\nXUlwt8XWaE+sIkOrKJc+ues99coToJ4pOTZSuIVFDQJjf8YQ9fPVzzQNuQKBgQC6\nrcFBKFRUKJRU9gIuMog61DBt6AfTfEuu/MHwVUpZGKs4Q6CArEqb3TFI21DM6ESg\nb+/qFMXVM2tOvrgglXM1XsmnAwsCBIHVEQdW/kcDlM45dtGTLbrpz0mwtSflcDbe\nywECuplNsCmnKXXgTX3gaBFmpDTtTASKT1YnR/y4pQKBgQCjQGbIDHx4pBUY2Fba\nJ/3kFeY1KhtkJDfhMLCHGKT/CLQF+pt7XZ75Bvofb8vYIAc1luLQSxlc5XlSbOzm\nk9l0UxEWH6DEeGpKwBJgLnOcaY6nXACxQFn5pLT2gJLerSFKArjJbtTkq5kRDUC+\nCx4Db29R1QeVIJgbChWZVv+C9Q==\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@flamingoes-restaurant-manager.iam.gserviceaccount.com",
-  "client_id": "104478366544568280488",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40flamingoes-restaurant-manager.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+const pool = require('../db'); // Import the pool directly // Import the pool from the main server file
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const axios = require('axios');
+// Firebase Admin SDK for verifying tokens from Firebase Authentication
+const firebase = require('firebase-admin');
+
+// Initialize Firebase Admin if not already initialized elsewhere
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    credential: firebase.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
     })
   });
 }
 
-// Forgot Password - Send OTP (Email or Mobile)
-router.post("/forgot-password", async (req, res) => {
-    try {
-        const { contactInfo, contactType } = req.body;
-        
-        // Check if user exists
-        const user = await pool.query(
-            "SELECT * FROM users WHERE " + (contactType === "email" ? "email = $1" : "phone = $1"),
-            [contactInfo]
-        );
-        if (user.rows.length === 0) {
-            return res.status(404).json({ 
-                message: `No account found with this ${contactType === "email" ? "email address" : "phone number"}` 
-            });
-        }
-        
-        // Only continue with OTP generation for email - mobile will use Firebase
-        if (contactType === "email") {
-            // Generate a 6-digit OTP
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // OTP expiration time (15 minutes from now)
-            const expiresAt = new Date();
-            expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-            
-            // Store OTP in database (create reset_tokens table if not exists)
-            await pool.query(`
-                CREATE TABLE IF NOT EXISTS reset_tokens (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES users(id),
-                    token VARCHAR(255) NOT NULL,
-                    otp VARCHAR(6),
-                    type VARCHAR(10) NOT NULL,
-                    expires_at TIMESTAMP NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    used BOOLEAN DEFAULT FALSE
-                )
-            `);
-            
-            // Generate a JWT token for security
-            const resetToken = jwt.sign(
-                { userId: user.rows[0].id, type: contactType },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            
-            // Delete any existing tokens for this user
-            await pool.query(
-                "DELETE FROM reset_tokens WHERE user_id = $1",
-                [user.rows[0].id]
-            );
-            
-            // Insert new token
-            await pool.query(
-                "INSERT INTO reset_tokens (user_id, token, otp, type, expires_at) VALUES ($1, $2, $3, $4, $5)",
-                [user.rows[0].id, resetToken, otp, contactType, expiresAt]
-            );
-            
-            // TODO: In production, send email with OTP
-            // For now, just return it for development purposes
-            console.log(`Password reset OTP for ${contactInfo}: ${otp}`);
-            
-            return res.status(200).json({
-                message: "Verification code sent to your email address",
-                otp: process.env.NODE_ENV === 'development' ? otp : undefined,
-                success: true
-            });
-        } else {
-            // For mobile, we'll use Firebase authentication
-            // The actual SMS sending is handled by Firebase on the frontend
-            return res.status(200).json({
-                message: "Please proceed with mobile verification",
-                success: true
-            });
-        }
-    } catch (error) {
-        console.error("FORGOT PASSWORD ERROR:", error);
-        return res.status(500).json({ message: "Server error. Please try again later." });
-    }
+// Configure mail transporter
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE || 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
+  }
 });
 
-// Resend OTP
-router.post("/resend-otp", async (req, res) => {
-    try {
-        const { contactInfo, contactType } = req.body;
-        
-        // Check if user exists
-        const user = await pool.query(
-            "SELECT * FROM users WHERE " + (contactType === "email" ? "email = $1" : "phone = $1"),
-            [contactInfo]
-        );
-        
-        if (user.rows.length === 0) {
-            return res.status(404).json({ 
-                message: `No account found with this ${contactType === "email" ? "email address" : "phone number"}`
-            });
-        }
-        
-        // Only handle email OTP resending - mobile is handled by Firebase on frontend
-        if (contactType === "email") {
-            // Generate a new 6-digit OTP
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // OTP expiration time (15 minutes from now)
-            const expiresAt = new Date();
-            expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-            
-            // Generate a new JWT token
-            const resetToken = jwt.sign(
-                { userId: user.rows[0].id, type: contactType },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            
-            // Update existing token or create new one
-            const existingToken = await pool.query(
-                "SELECT * FROM reset_tokens WHERE user_id = $1 AND used = FALSE",
-                [user.rows[0].id]
-            );
-            
-            if (existingToken.rows.length > 0) {
-                // Update existing token
-                await pool.query(
-                    "UPDATE reset_tokens SET otp = $1, token = $2, expires_at = $3 WHERE user_id = $4 AND used = FALSE",
-                    [otp, resetToken, expiresAt, user.rows[0].id]
-                );
-            } else {
-                // Insert new token
-                await pool.query(
-                    "INSERT INTO reset_tokens (user_id, token, otp, type, expires_at) VALUES ($1, $2, $3, $4, $5)",
-                    [user.rows[0].id, resetToken, otp, contactType, expiresAt]
-                );
-            }
-            
-            // TODO: In production, send email with OTP
-            // For now, just return it for development purposes
-            console.log(`Password reset OTP resent for ${contactInfo}: ${otp}`);
-            
-            return res.status(200).json({
-                message: "Verification code resent to your email address",
-                otp: process.env.NODE_ENV === 'development' ? otp : undefined,
-                success: true
-            });
-        } else {
-            // For mobile, resending is handled by Firebase on the frontend
-            return res.status(200).json({
-                message: "Please proceed with mobile verification",
-                success: true
-            });
-        }
-    } catch (error) {
-        console.error("RESEND OTP ERROR:", error);
-        return res.status(500).json({ message: "Server error. Please try again later." });
-    }
-});
+// Store OTPs temporarily (in production, consider using Redis)
+const otpStore = new Map();
 
-// Verify OTP
-router.post("/verify-otp", async (req, res) => {
-    try {
-        const { contactInfo, contactType, otp } = req.body;
-        
-        // Verify email OTP
-        if (contactType === "email") {
-            // Get user
-            const user = await pool.query(
-                "SELECT * FROM users WHERE email = $1",
-                [contactInfo]
-            );
-            
-            if (user.rows.length === 0) {
-                return res.status(404).json({ message: "User not found" });
-            }
-            
-            // Get token
-            const tokenRecord = await pool.query(
-                "SELECT * FROM reset_tokens WHERE user_id = $1 AND used = FALSE AND type = $2",
-                [user.rows[0].id, contactType]
-            );
-            
-            if (tokenRecord.rows.length === 0) {
-                return res.status(400).json({ message: "Invalid or expired verification code" });
-            }
-            
-            const storedOtp = tokenRecord.rows[0].otp;
-            const expiresAt = new Date(tokenRecord.rows[0].expires_at);
-            
-            // Check if OTP is expired
-            if (expiresAt < new Date()) {
-                return res.status(400).json({ message: "Verification code has expired" });
-            }
-            
-            // Check if OTP matches
-            if (otp !== storedOtp) {
-                return res.status(400).json({ message: "Invalid verification code" });
-            }
-            
-            // Generate a new token for password reset
-            const resetToken = jwt.sign(
-                { userId: user.rows[0].id, type: contactType },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            
-            return res.status(200).json({
-                message: "Verification successful",
-                resetToken,
-                success: true
-            });
-        } else {
-            // For mobile OTP, verification is handled in separate endpoint
-            return res.status(400).json({ 
-                message: "Invalid request. Mobile verification should use Firebase authentication." 
-            });
-        }
-    } catch (error) {
-        console.error("VERIFY OTP ERROR:", error);
-        return res.status(500).json({ message: "Server error. Please try again later." });
-    }
-});
+// Generate random OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-// Verify Firebase phone authentication
-router.post("/verify-phone-auth", async (req, res) => {
-    try {
-        const { phone, firebaseToken } = req.body;
-        
-        // Verify Firebase token
-        const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
-        
-        if (!decodedToken) {
-            return res.status(401).json({ message: "Invalid authentication" });
-        }
-        
-        // Get user from database
-        const user = await pool.query(
-            "SELECT * FROM users WHERE phone = $1",
-            [phone]
-        );
-        
-        if (user.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        
-        // Generate a JWT token for password reset
-        const resetToken = jwt.sign(
-            { userId: user.rows[0].id, type: "mobile" },
-            process.env.JWT_SECRET,
-            { expiresIn: '15m' }
-        );
-        
-        // Store token in database
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-        
-        await pool.query(
-            "INSERT INTO reset_tokens (user_id, token, type, expires_at) VALUES ($1, $2, $3, $4)",
-            [user.rows[0].id, resetToken, "mobile", expiresAt]
-        );
-        
-        return res.status(200).json({
-            message: "Mobile verification successful",
-            resetToken,
-            success: true
+// Send email with OTP
+const sendEmailOTP = async (email, otp) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Password Reset Verification Code - Flamingoes Restaurant',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e9ecef; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #0a58ca;">Flamingoes Restaurant</h2>
+          <p style="color: #6c757d;">Password Reset Verification</p>
+        </div>
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+          <p>Hello,</p>
+          <p>We received a request to reset your password. Please use the verification code below to continue:</p>
+          <div style="background-color: #e9ecef; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 15px 0; border-radius: 5px;">
+            ${otp}
+          </div>
+          <p>This code will expire in 10 minutes.</p>
+          <p>If you didn't request this, please ignore this email or contact support if you have concerns.</p>
+        </div>
+        <div style="text-align: center; font-size: 12px; color: #6c757d;">
+          <p>&copy; Flamingoes 2025. All Rights Reserved.</p>
+        </div>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+// Initiate password reset flow
+router.post('/forgot-password', async (req, res) => {
+  const { email, phone, type } = req.body;
+
+  try {
+    if (type !== 'email' && type !== 'sms') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid verification type. Please use either "email" or "sms".' 
+      });
+    }
+
+    // For email verification
+    if (type === 'email') {
+      // Check if user exists
+      const userQuery = 'SELECT id FROM users WHERE email = $1';
+      const userResult = await pool.query(userQuery, [email]);
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'No account found with this email address' 
         });
-    } catch (error) {
-        console.error("VERIFY PHONE AUTH ERROR:", error);
-        return res.status(500).json({ message: "Invalid authentication or server error" });
+      }
+
+      // Generate OTP
+      const otp = generateOTP();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
+
+      // Store OTP with timestamp
+      otpStore.set(email, {
+        otp,
+        expiresAt,
+        attempts: 0
+      });
+
+      // Send OTP via email
+      await sendEmailOTP(email, otp);
+
+      // Return success with OTP for development environments only
+      if (process.env.NODE_ENV === 'development') {
+        return res.json({ 
+          success: true, 
+          message: 'Verification code sent to your email',
+          otp: otp // Only include in development
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Verification code sent to your email' 
+      });
     }
+    
+    // For SMS verification - Just generate a verification session ID
+    // The actual SMS is sent by Firebase on the client-side
+    if (type === 'sms') {
+      // Check if user exists with this phone number
+      const userQuery = 'SELECT id FROM users WHERE phone = $1';
+      const userResult = await pool.query(userQuery, [phone]);
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'No account found with this phone number' 
+        });
+      }
+
+      // For SMS we don't send the message ourselves - Firebase handles it
+      // We just return a success so the client can proceed with Firebase phone auth
+      res.json({ 
+        success: true, 
+        message: 'Please proceed with phone verification',
+        verificationMode: 'firebase'
+      });
+    }
+  } catch (error) {
+    console.error('FORGOT PASSWORD ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to process your request. Please try again later.' 
+    });
+  }
+});
+
+// Resend OTP (email only - Firebase handles SMS resend)
+router.post('/resend-otp', async (req, res) => {
+  const { email, type } = req.body;
+
+  try {
+    if (type !== 'email') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only email type is supported through this endpoint. For SMS, use Firebase directly.' 
+      });
+    }
+
+    // Check if user exists
+    const userQuery = 'SELECT id FROM users WHERE email = $1';
+    const userResult = await pool.query(userQuery, [email]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No account found with this email address' 
+      });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
+
+    // Store new OTP
+    otpStore.set(email, {
+      otp,
+      expiresAt,
+      attempts: 0
+    });
+
+    // Send OTP via email
+    await sendEmailOTP(email, otp);
+
+    // Return success with OTP for development environments only
+    if (process.env.NODE_ENV === 'development') {
+      return res.json({ 
+        success: true, 
+        message: 'Verification code resent to your email',
+        otp: otp // Only include in development
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Verification code resent to your email' 
+    });
+  } catch (error) {
+    console.error('RESEND OTP ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to resend verification code. Please try again later.' 
+    });
+  }
+});
+
+// Verify OTP (for email verification)
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp, type } = req.body;
+
+  try {
+    if (type !== 'email') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only email type is supported through this endpoint' 
+      });
+    }
+
+    // Check if OTP exists for this email
+    if (!otpStore.has(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No verification code found. Please request a new one.' 
+      });
+    }
+
+    const otpData = otpStore.get(email);
+
+    // Check if OTP has expired
+    if (new Date() > otpData.expiresAt) {
+      otpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Verification code has expired. Please request a new one.' 
+      });
+    }
+
+    // Check if max attempts reached
+    if (otpData.attempts >= 5) {
+      otpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Too many invalid attempts. Please request a new verification code.' 
+      });
+    }
+
+    // Verify OTP
+    if (otpData.otp !== otp) {
+      // Increment attempts counter
+      otpData.attempts += 1;
+      otpStore.set(email, otpData);
+      
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid verification code. Please try again.' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Store token in database with expiry of 10 minutes
+    const expiryTime = new Date();
+    expiryTime.setMinutes(expiryTime.getMinutes() + 10);
+    
+    const updateQuery = `
+      UPDATE users 
+      SET reset_token = $1, reset_token_expires = $2 
+      WHERE email = $3
+      RETURNING id
+    `;
+    await pool.query(updateQuery, [tokenHash, expiryTime, email]);
+
+    // Remove OTP from store once verified
+    otpStore.delete(email);
+
+    res.json({ 
+      success: true, 
+      message: 'Verification successful!', 
+      resetToken 
+    });
+  } catch (error) {
+    console.error('VERIFY OTP ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to verify code. Please try again later.' 
+    });
+  }
+});
+
+// Handle phone verification with Firebase
+router.post('/verify-phone-auth', async (req, res) => {
+  const { phone, firebaseToken } = req.body;
+
+  try {
+    // Verify Firebase token using Firebase Admin SDK
+    const decodedToken = await firebase.auth().verifyIdToken(firebaseToken);
+    
+    // Ensure the phone number in the token matches the one in the request
+    if (!decodedToken.phone_number || decodedToken.phone_number !== phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number verification failed'
+      });
+    }
+    
+    // Check if user exists with this phone number
+    const userQuery = 'SELECT id FROM users WHERE phone = $1';
+    const userResult = await pool.query(userQuery, [phone]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No account found with this phone number' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Store token in database with expiry of 10 minutes
+    const expiryTime = new Date();
+    expiryTime.setMinutes(expiryTime.getMinutes() + 10);
+    
+    const updateQuery = `
+      UPDATE users 
+      SET reset_token = $1, reset_token_expires = $2 
+      WHERE phone = $3
+      RETURNING id
+    `;
+    await pool.query(updateQuery, [tokenHash, expiryTime, phone]);
+
+    res.json({ 
+      success: true, 
+      message: 'Phone verification successful!', 
+      resetToken 
+    });
+  } catch (error) {
+    console.error('PHONE VERIFICATION ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to verify phone. Please try again later.' 
+    });
+  }
 });
 
 // Reset password
-router.post("/reset-password", async (req, res) => {
-    try {
-        const { resetToken, newPassword } = req.body;
-        
-        // Verify token
-        let decoded;
-        try {
-            decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
-        } catch (error) {
-            return res.status(401).json({ message: "Invalid or expired reset token" });
-        }
-        
-        // Check if token exists in database
-        const tokenRecord = await pool.query(
-            "SELECT * FROM reset_tokens WHERE token = $1 AND used = FALSE",
-            [resetToken]
-        );
-        
-        if (tokenRecord.rows.length === 0) {
-            return res.status(401).json({ message: "Invalid or expired reset token" });
-        }
-        
-        // Check token expiration
-        const expiresAt = new Date(tokenRecord.rows[0].expires_at);
-        if (expiresAt < new Date()) {
-            return res.status(401).json({ message: "Reset token has expired" });
-        }
-        
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-        
-        // Update user password
-        await pool.query(
-            "UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-            [hashedPassword, decoded.userId]
-        );
-        
-        // Mark token as used
-        await pool.query(
-            "UPDATE reset_tokens SET used = TRUE WHERE token = $1",
-            [resetToken]
-        );
-        
-        return res.status(200).json({
-            message: "Password has been reset successfully",
-            success: true
-        });
-    } catch (error) {
-        console.error("RESET PASSWORD ERROR:", error);
-        return res.status(500).json({ message: "Server error. Please try again later." });
+router.post('/reset-password', async (req, res) => {
+  const { resetToken, newPassword } = req.body;
+
+  try {
+    // Hash the token from the request
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Check if token exists and is not expired
+    const tokenQuery = `
+      SELECT id, email, phone 
+      FROM users 
+      WHERE reset_token = $1 AND reset_token_expires > NOW()
+    `;
+    const tokenResult = await pool.query(tokenQuery, [tokenHash]);
+
+    if (tokenResult.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid or expired reset link. Please try again.' 
+      });
     }
+
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update user's password and clear reset token
+    const updateQuery = `
+      UPDATE users 
+      SET password = $1, reset_token = NULL, reset_token_expires = NULL 
+      WHERE id = $2
+    `;
+    await pool.query(updateQuery, [hashedPassword, tokenResult.rows[0].id]);
+
+    // If user has email, send password change notification
+    if (tokenResult.rows[0].email) {
+      const notificationEmail = {
+        from: process.env.EMAIL_USER,
+        to: tokenResult.rows[0].email,
+        subject: 'Your Password Has Been Reset - Flamingoes Restaurant',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e9ecef; border-radius: 5px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #0a58ca;">Flamingoes Restaurant</h2>
+              <p style="color: #6c757d;">Security Notification</p>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+              <p>Hello,</p>
+              <p>This is a confirmation that your password for your Flamingoes Restaurant account has been changed successfully.</p>
+              <p>If you did not make this change, please contact our support team immediately.</p>
+            </div>
+            <div style="text-align: center; font-size: 12px; color: #6c757d;">
+              <p>&copy; Flamingoes 2025. All Rights Reserved.</p>
+            </div>
+          </div>
+        `
+      };
+
+      transporter.sendMail(notificationEmail).catch(err => 
+        console.error('Failed to send password change notification email:', err)
+      );
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully!' 
+    });
+  } catch (error) {
+    console.error('PASSWORD RESET ERROR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to reset password. Please try again later.' 
+    });
+  }
 });
 
 module.exports = router;

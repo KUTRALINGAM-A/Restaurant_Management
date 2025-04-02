@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios"; // Make sure to install axios
+import axios from "axios";
 
-// Keep Firebase only for phone verification if needed
+// Firebase for phone verification
 import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { 
+  getAuth, 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber 
+} from "firebase/auth";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -17,12 +21,12 @@ const firebaseConfig = {
   measurementId: "G-R01VTB0S8G"
 };
 
-// Initialize Firebase (only needed for recaptcha)
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // API base URL - replace with your actual backend URL
-const API_BASE_URL = "http://localhost:5000"; // Adjust to your backend URL
+const API_BASE_URL = "http://localhost:5000";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -37,9 +41,8 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [timer, setTimer] = useState(0);
   const [resetToken, setResetToken] = useState("");
-  const [verificationId, setVerificationId] = useState("");
-
-  // Simulated animation effect
+  
+  // Animation effect
   useEffect(() => {
     const animTimer = setTimeout(() => {
       const container = document.getElementById("forgot-password-container");
@@ -54,10 +57,26 @@ const ForgotPassword = () => {
   // Set up recaptcha verifier for phone authentication
   useEffect(() => {
     if (contactType === "mobile" && step === 1) {
+      // Clear any existing recaptcha to avoid duplicates
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (error) {
+          console.error("Error clearing recaptcha:", error);
+        }
+      }
+      
+      // Create new recaptcha verifier
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': () => {
-          // reCAPTCHA solved, allow sending verification code
+          // reCAPTCHA solved
+          console.log("reCAPTCHA verified");
+        },
+        'expired-callback': () => {
+          // Response expired. Ask user to solve reCAPTCHA again.
+          console.log("reCAPTCHA expired");
+          setMessage("reCAPTCHA verification expired. Please try again.");
         }
       });
     }
@@ -85,7 +104,7 @@ const ForgotPassword = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(contactInfo);
     } else {
-      // Basic validation for mobile (can be enhanced based on country format)
+      // Basic validation for mobile with country code
       const mobileRegex = /^\+[0-9]{10,15}$/;
       return mobileRegex.test(contactInfo);
     }
@@ -95,44 +114,79 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
-
+  
     if (!validateContactInfo()) {
       setMessage(`Please enter a valid ${contactType === "email" ? "email address" : "mobile number with country code (e.g. +1234567890)"}`);
       setIsLoading(false);
       return;
     }
-
+  
     try {
       if (contactType === "email") {
-        // Use your custom backend endpoint for email OTP
+        // Send email OTP via backend
         const response = await axios.post(`${API_BASE_URL}/forgot-password`, {
-          contactInfo: contactInfo,
-          contactType: contactType
+          email: contactInfo,
+          type: "email"
         });
         
-        setMessage(response.data.message);
-        
-        // For development testing only - remove in production
-        if (response.data.otp) {
-          console.log("OTP for testing:", response.data.otp);
-          // You can show this on screen during development
-          setMessage(`Verification code sent to your email. For testing, OTP is: ${response.data.otp}`);
+        if (response.data.success) {
+          setMessage(response.data.message || "Verification code sent to your email.");
+          
+          // For development testing only - remove in production
+          if (response.data.otp) {
+            console.log("OTP for testing:", response.data.otp);
+            setMessage(`Verification code sent to your email. For testing, OTP is: ${response.data.otp}`);
+          }
+          
+          // Move to next step and start timer
+          setStep(2);
+          setTimer(120); // 2 minutes countdown
+        } else {
+          throw new Error(response.data.message || "Failed to send verification code");
         }
-        
-        // Move to next step and start timer
-        setStep(2);
-        setTimer(120); // 2 minutes countdown
       } else {
-        // Use Firebase for phone authentication
-        const phoneNumber = contactInfo; // Make sure this is in international format (e.g. +1234567890)
-        const appVerifier = window.recaptchaVerifier;
+        // For mobile verification: First call our backend to verify the phone exists
+        const response = await axios.post(`${API_BASE_URL}/forgot-password`, {
+          phone: contactInfo,  // Now sending the phone parameter correctly
+          type: "sms"  // Using "sms" which the backend expects
+        });
         
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        window.confirmationResult = confirmationResult;
-        
-        setMessage("Verification code sent to your mobile number");
-        setStep(2);
-        setTimer(120); // 2 minutes countdown
+        if (response.data.success && response.data.verificationMode === 'firebase') {
+          // Use Firebase for phone authentication
+          const appVerifier = window.recaptchaVerifier;
+          
+          if (!appVerifier) {
+            throw new Error("reCAPTCHA verification failed. Please refresh and try again.");
+          }
+          
+          try {
+            const confirmationResult = await signInWithPhoneNumber(auth, contactInfo, appVerifier);
+            // Store the confirmation result globally
+            window.confirmationResult = confirmationResult;
+            
+            setMessage("Verification code sent to your mobile number");
+            setStep(2);
+            setTimer(120); // 2 minutes countdown
+          } catch (firebaseError) {
+            console.error("Firebase phone auth error:", firebaseError);
+            
+            // Reset reCAPTCHA on error
+            if (window.recaptchaVerifier) {
+              try {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                  'size': 'invisible'
+                });
+              } catch (e) {
+                console.error("Error resetting reCAPTCHA:", e);
+              }
+            }
+            
+            throw new Error(firebaseError.message || "Failed to send verification code to your phone");
+          }
+        } else {
+          throw new Error(response.data.message || "Failed to send verification code");
+        }
       }
     } catch (error) {
       console.error("SEND OTP ERROR:", error);
@@ -141,42 +195,64 @@ const ForgotPassword = () => {
       setIsLoading(false);
     }
   };
-
   const handleResendOTP = async () => {
     setIsLoading(true);
+    setMessage("");
+    
     try {
       if (contactType === "email") {
-        // Use your custom backend endpoint to resend OTP
+        // Resend email OTP via backend
         const response = await axios.post(`${API_BASE_URL}/resend-otp`, {
-          contactInfo: contactInfo,
-          contactType: contactType
+          email: contactInfo,
+          type: "email"
         });
-
-        setMessage(response.data.message);
-        
-        // For development testing only - remove in production
-        if (response.data.otp) {
-          console.log("OTP for testing:", response.data.otp);
-          // You can show this on screen during development
-          setMessage(`Verification code resent to your email. For testing, OTP is: ${response.data.otp}`);
+  
+        if (response.data.success) {
+          setMessage(response.data.message || "Verification code resent to your email.");
+          
+          // For development testing only - remove in production
+          if (response.data.otp) {
+            console.log("OTP for testing:", response.data.otp);
+            setMessage(`Verification code resent to your email. For testing, OTP is: ${response.data.otp}`);
+          }
+          
+          setTimer(120); // Reset timer
+        } else {
+          throw new Error(response.data.message || "Failed to resend verification code");
         }
       } else {
-        // Use Firebase for phone authentication resend
-        // First, reset the recaptcha
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible'
+        // For mobile verification: First call our backend to verify the phone exists
+        const response = await axios.post(`${API_BASE_URL}/forgot-password`, {
+          phone: contactInfo,
+          type: "sms"
         });
         
-        // Send the verification code again
-        const appVerifier = window.recaptchaVerifier;
-        const confirmationResult = await signInWithPhoneNumber(auth, contactInfo, appVerifier);
-        window.confirmationResult = confirmationResult;
-        
-        setMessage("Verification code resent to your mobile number");
+        if (response.data.success && response.data.verificationMode === 'firebase') {
+          // Reset reCAPTCHA for phone auth
+          if (window.recaptchaVerifier) {
+            try {
+              window.recaptchaVerifier.clear();
+            } catch (e) {
+              console.error("Error clearing reCAPTCHA:", e);
+            }
+          }
+          
+          // Create new reCAPTCHA instance
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible'
+          });
+          
+          // Send new verification code
+          const appVerifier = window.recaptchaVerifier;
+          const confirmationResult = await signInWithPhoneNumber(auth, contactInfo, appVerifier);
+          window.confirmationResult = confirmationResult;
+          
+          setMessage("Verification code resent to your mobile number");
+          setTimer(120); // Reset timer
+        } else {
+          throw new Error(response.data.message || "Failed to resend verification code");
+        }
       }
-      
-      setTimer(120); // Reset timer
     } catch (error) {
       console.error("RESEND OTP ERROR:", error);
       setMessage(error.response?.data?.message || error.message || "Failed to resend verification code. Please try again.");
@@ -184,44 +260,61 @@ const ForgotPassword = () => {
       setIsLoading(false);
     }
   };
-
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
 
+    if (!otp || otp.length < 4) {
+      setMessage("Please enter a valid verification code");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (contactType === "email") {
-        // Use your custom backend endpoint to verify email OTP
+        // Verify email OTP via backend
         const response = await axios.post(`${API_BASE_URL}/verify-otp`, {
-          contactInfo: contactInfo,
-          contactType: contactType,
-          otp: otp
+          email: contactInfo,
+          otp: otp,
+          type: "email"
         });
 
-        setMessage("Verification successful!");
-        setResetToken(response.data.resetToken);
-        setStep(3);
+        if (response.data.success) {
+          setMessage("Verification successful!");
+          setResetToken(response.data.resetToken);
+          setStep(3);
+        } else {
+          throw new Error(response.data.message || "Invalid verification code");
+        }
       } else {
         // Verify Firebase phone OTP
-        const confirmationResult = window.confirmationResult;
-        const result = await confirmationResult.confirm(otp);
+        if (!window.confirmationResult) {
+          throw new Error("Verification session expired. Please request a new code.");
+        }
         
-        // User is signed in with phone. You can use this to verify on backend
-        const user = result.user;
-        const idToken = await user.getIdToken();
+        const result = await window.confirmationResult.confirm(otp);
         
-        // Now send this token to your backend for validation
-        const response = await axios.post(`${API_BASE_URL}/verify-phone-auth`, {
-          verificationId: verificationId,
-          code: otp,
-          phone: contactInfo,
-          firebaseToken: idToken
-        });
+        if (result.user) {
+          // Get Firebase ID token
+          const idToken = await result.user.getIdToken();
+          
+          // Verify with backend
+          const response = await axios.post(`${API_BASE_URL}/verify-phone-auth`, {
+            phone: contactInfo,
+            firebaseToken: idToken
+          });
 
-        setMessage("Verification successful!");
-        setResetToken(response.data.resetToken);
-        setStep(3);
+          if (response.data.success) {
+            setMessage("Verification successful!");
+            setResetToken(response.data.resetToken);
+            setStep(3);
+          } else {
+            throw new Error(response.data.message || "Verification failed on server");
+          }
+        } else {
+          throw new Error("Phone verification failed");
+        }
       }
     } catch (error) {
       console.error("OTP VERIFICATION ERROR:", error);
@@ -249,18 +342,22 @@ const ForgotPassword = () => {
     }
 
     try {
-      // Use your custom backend endpoint to reset password
+      // Reset password via backend
       const response = await axios.post(`${API_BASE_URL}/reset-password`, {
         resetToken: resetToken,
         newPassword: newPassword
       });
 
-      setMessage("Password reset successfully! Redirecting to login...");
-      
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+      if (response.data.success) {
+        setMessage("Password reset successfully! Redirecting to login...");
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        throw new Error(response.data.message || "Failed to reset password");
+      }
     } catch (error) {
       console.error("PASSWORD RESET ERROR:", error);
       setMessage(error.response?.data?.message || error.message || "Failed to reset password. Please try again.");
@@ -279,7 +376,6 @@ const ForgotPassword = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Rest of your component remains the same...
   return (
     <div
       style={{
@@ -572,39 +668,19 @@ const ForgotPassword = () => {
                       boxSizing: "border-box",
                       transition: "border-color 0.2s ease",
                       backgroundColor: "#ffffff",
-                      letterSpacing: "0.5em",
-                      textAlign: "center",
                     }}
                   />
+                  <div style={{
+                    position: "absolute",
+                    top: "50%",
+                    right: "16px",
+                    transform: "translateY(-50%)",
+                    color: "#6c757d",
+                    fontSize: "16px",
+                  }}>
+                    🔐
+                  </div>
                 </div>
-              </div>
-
-              <div style={{
-                textAlign: "center",
-                marginBottom: "20px",
-              }}>
-                {timer > 0 ? (
-                  <p style={{ fontSize: "14px", color: "#6c757d" }}>
-                    Resend code in {formatTime(timer)}
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={isLoading}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#0a58ca",
-                      fontSize: "14px",
-                      cursor: isLoading ? "not-allowed" : "pointer",
-                      fontWeight: "500",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Resend verification code
-                  </button>
-                )}
               </div>
 
               {message && (
@@ -612,14 +688,48 @@ const ForgotPassword = () => {
                   padding: "12px 15px",
                   marginBottom: "20px",
                   borderRadius: "8px",
-                  backgroundColor: message.includes("success") ? "#d4edda" : "#f8d7da",
-                  color: message.includes("success") ? "#155724" : "#721c24",
+                  backgroundColor: message.includes("successful") ? "#d4edda" : "#f8d7da",
+                  color: message.includes("successful") ? "#155724" : "#721c24",
                   fontSize: "14px",
                   fontWeight: "500",
                 }}>
                   {message}
                 </div>
               )}
+
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "20px",
+              }}>
+                {timer > 0 ? (
+                  <p style={{
+                    margin: "0",
+                    color: "#0a58ca",
+                    fontWeight: "500",
+                    fontSize: "14px",
+                  }}>
+                    Resend code in {formatTime(timer)}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={isLoading || timer > 0}
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "none",
+                      color: "#0a58ca",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      cursor: isLoading || timer > 0 ? "not-allowed" : "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Resend verification code
+                  </button>
+                )}
+              </div>
 
               <button
                 type="submit"
@@ -635,16 +745,36 @@ const ForgotPassword = () => {
                   cursor: isLoading ? "not-allowed" : "pointer",
                   transition: "background-color 0.2s ease",
                   boxShadow: "0 4px 6px rgba(10, 88, 202, 0.2)",
-                  marginBottom: "10px",
+                  marginBottom: "15px",
                 }}
                 disabled={isLoading}
               >
                 {isLoading ? "Verifying..." : "Verify Code"}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "transparent",
+                  color: "#6c757d",
+                  border: "1px solid #ced4da",
+                  borderRadius: "10px",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                disabled={isLoading}
+              >
+                Go Back
+              </button>
             </form>
           )}
 
-          {/* Step 3: Create New Password */}
+          {/* Step 3: Set new password */}
           {step === 3 && (
             <form onSubmit={handleResetPassword}>
               <div style={{
@@ -668,7 +798,6 @@ const ForgotPassword = () => {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
-                    minLength="8"
                     disabled={isLoading}
                     style={{
                       width: "100%",
@@ -682,21 +811,32 @@ const ForgotPassword = () => {
                       backgroundColor: "#ffffff",
                     }}
                   />
-                  <div 
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
                     style={{
                       position: "absolute",
                       top: "50%",
                       right: "16px",
                       transform: "translateY(-50%)",
+                      backgroundColor: "transparent",
+                      border: "none",
                       color: "#6c757d",
-                      fontSize: "16px",
                       cursor: "pointer",
+                      fontSize: "16px",
                     }}
-                    onClick={togglePasswordVisibility}
                   >
-                    {showPassword ? "👁️" : "👁️‍🗨️"}
-                  </div>
+                    {showPassword ? "👁️" : "🔒"}
+                  </button>
                 </div>
+                <small style={{
+                  display: "block",
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "#6c757d",
+                }}>
+                  Password must be at least 8 characters long
+                </small>
               </div>
 
               <div style={{
@@ -709,7 +849,7 @@ const ForgotPassword = () => {
                   fontWeight: "500",
                   color: "#343a40",
                 }}>
-                  Confirm New Password
+                  Confirm Password
                 </label>
                 <div style={{
                   position: "relative",
@@ -720,7 +860,6 @@ const ForgotPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                     required
-                    minLength="8"
                     disabled={isLoading}
                     style={{
                       width: "100%",
@@ -734,6 +873,23 @@ const ForgotPassword = () => {
                       backgroundColor: "#ffffff",
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      right: "16px",
+                      transform: "translateY(-50%)",
+                      backgroundColor: "transparent",
+                      border: "none",
+                      color: "#6c757d",
+                      cursor: "pointer",
+                      fontSize: "16px",
+                    }}
+                  >
+                    {showPassword ? "👁️" : "🔒"}
+                  </button>
                 </div>
               </div>
 
@@ -742,8 +898,8 @@ const ForgotPassword = () => {
                   padding: "12px 15px",
                   marginBottom: "20px",
                   borderRadius: "8px",
-                  backgroundColor: message.includes("success") ? "#d4edda" : "#f8d7da",
-                  color: message.includes("success") ? "#155724" : "#721c24",
+                  backgroundColor: message.includes("successfully") ? "#d4edda" : "#f8d7da",
+                  color: message.includes("successfully") ? "#155724" : "#721c24",
                   fontSize: "14px",
                   fontWeight: "500",
                 }}>
@@ -765,7 +921,7 @@ const ForgotPassword = () => {
                   cursor: isLoading ? "not-allowed" : "pointer",
                   transition: "background-color 0.2s ease",
                   boxShadow: "0 4px 6px rgba(10, 88, 202, 0.2)",
-                  marginBottom: "20px",
+                  marginBottom: "15px",
                 }}
                 disabled={isLoading}
               >
@@ -774,30 +930,30 @@ const ForgotPassword = () => {
             </form>
           )}
 
+          {/* Footer section */}
           <div style={{
-            textAlign: "center",
             marginTop: "15px",
+            textAlign: "center",
           }}>
-            <Link
-              to="/login"
-              style={{
-                display: "inline-block",
-                fontSize: "14px",
-                color: "#0a58ca",
-                textDecoration: "none",
-                fontWeight: "500",
-                padding: "8px 16px",
-                borderRadius: "6px",
-                backgroundColor: "#e9ecef",
-                transition: "background-color 0.2s ease",
-              }}
-            >
-              Back to Login
-            </Link>
+            <p style={{
+              fontSize: "14px",
+              color: "#6c757d",
+              margin: "0",
+            }}>
+              Remember your password?{" "}
+              <Link
+                to="/login"
+                style={{
+                  color: "#0a58ca",
+                  textDecoration: "none",
+                  fontWeight: "500",
+                }}
+              >
+                Sign In
+              </Link>
+            </p>
           </div>
         </div>
-
-        {/* Footer */}
         <footer style={{
           backgroundColor: "#f8f9fa",
           borderTop: "1px solid #e9ecef",
