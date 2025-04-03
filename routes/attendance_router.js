@@ -384,6 +384,8 @@ router.post('/attendance/:restaurantId', auth, async (req, res) => {
       });
     }
     
+
+    
     // Check if the table exists, create if it doesn't
     await client.query(`
       CREATE TABLE IF NOT EXISTS attendance_${restaurantId} (
